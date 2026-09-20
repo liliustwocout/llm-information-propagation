@@ -1,0 +1,2 @@
+hop,active_transmissions,newly_activated_nodes,penetration_rate,polarization_index,average_semantic_drift,reproduction_rate,remaining_queue_size,informed_total
+1,13,"[1, 2, 3, 7, 10, 17, 18, 19]",45.0,0.0459,0.0985,0.62,16,9

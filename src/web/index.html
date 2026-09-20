@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAS-Diffusion-Lab | Mô phỏng Lan truyền Thông tin Đa tác tử LLMs</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Vis.js Network for Interactive Graph -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <!-- Chart.js for Scientific Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- D3.js for Complex Visual Scaling & Color Divergence -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <!-- Anime.js for Kinetic Micro-Animations & Timeline Choreography -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="dark-theme">
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <circle cx="4" cy="6" r="2"></circle>
+          <circle cx="20" cy="6" r="2"></circle>
+          <circle cx="4" cy="18" r="2"></circle>
+          <circle cx="20" cy="18" r="2"></circle>
+          <path d="M6 7l4 3m4 0l4-3m-12 9l4-3m4 0l4 3"></path>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">MAS-Diffusion-Lab</h1>
+        <p class="brand-subtitle">NCKH 2026 • Mô phỏng Lan truyền Thông tin Đa tác tử LLMs</p>
+      </div>
+    </div>
+
+    <div class="nav-status-group">
+      <!-- Ollama Status Pill -->
+      <div class="status-pill" id="ollama-status-pill" title="Bấm để xem hướng dẫn kết nối Ollama">
+        <span class="status-dot offline" id="ollama-dot"></span>
+        <span class="status-label">Ollama Cục bộ:</span>
+        <span class="status-val" id="ollama-val">Đang kiểm tra...</span>
+      </div>
+
+      <!-- Cloud Status Pill -->
+      <div class="status-pill" id="cloud-status-pill">
+        <span class="status-dot" id="cloud-dot"></span>
+        <span class="status-label">Cloud AI:</span>
+        <span class="status-val" id="cloud-val">Mặc định Mock</span>
+      </div>
+
+      <!-- Mode Badge -->
+      <div class="badge-tag" id="active-engine-badge">Engine: MOCK / SIMULATION</div>
+
+      <button class="btn btn-secondary btn-sm" id="btn-ollama-guide">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Hướng dẫn Ollama
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-layout">
+    
+    <!-- LEFT SIDEBAR: Configuration & Control Panel -->
+    <aside class="sidebar-config glass-panel">
+      <div class="panel-header">
+        <h2>Thiết lập Thực nghiệm</h2>
+        <span class="badge">Chuẩn NCKH</span>
+      </div>
+
+      <div class="form-scrollable">
+        <!-- Topo Selection -->
+        <div class="form-group">
+          <label for="select-topology">Cấu trúc Topo Mạng (Topology):</label>
+          <select id="select-topology" class="form-select">
+            <option value="BA_SCALE_FREE" selected>Mạng Không tỷ lệ (Barabási–Albert BA)</option>
+            <option value="WS_SMALL_WORLD">Mạng Thế giới nhỏ (Watts–Strogatz WS)</option>
+            <option value="ER_RANDOM">Mạng Ngẫu nhiên Đối chứng (Erdős–Rényi ER)</option>
+            <option value="SBM_COMMUNITY">Mạng Buồng vang (Stochastic Block SBM)</option>
+          </select>
+          <small class="form-hint" id="topo-desc">Phân bố bậc theo luật lũy thừa, xuất hiện các siêu nút (Hubs).</small>
+        </div>
+
+        <!-- Local Ollama Model Selection -->
+        <div class="form-group">
+          <label for="select-local-model">Mô hình LLM Cục bộ (Ollama):</label>
+          <select id="select-local-model" class="form-select">
+            <option value="qwen2.5:3b" selected>Qwen 2.5 3B (Nhanh, 100% trên GPU 4GB VRAM)</option>
+            <option value="llama3:8b">Llama 3 8B (Sâu sắc, Hybrid VRAM + RAM)</option>
+          </select>
+          <small class="form-hint">Mô hình AI chạy cục bộ suy luận nhận thức cho từng tác tử.</small>
+        </div>
+
+        <!-- Node Count & Max Hops -->
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="input-nodes">Số lượng Tác tử ($N$):</label>
+            <input type="number" id="input-nodes" class="form-input" value="30" min="10" max="100" step="5">
+          </div>
+          <div class="form-group half">
+            <label for="input-hops">Số Hop tối đa ($T$):</label>
+            <input type="number" id="input-hops" class="form-input" value="8" min="3" max="20">
+          </div>
+        </div>
+
+        <!-- Fact Checker Ratio & Placement -->
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="input-fc-ratio">Tỷ lệ Fact-Checker:</label>
+            <select id="input-fc-ratio" class="form-select">
+              <option value="0.0">0% (Không can thiệp)</option>
+              <option value="0.1" selected>10% (Can thiệp vừa)</option>
+              <option value="0.2">20% (Can thiệp cao)</option>
+            </select>
+          </div>
+          <div class="form-group half">
+            <label for="select-fc-placement">Vị trí can thiệp:</label>
+            <select id="select-fc-placement" class="form-select">
+              <option value="HUB_DEGREE" selected>Nút Trục (Hubs)</option>
+              <option value="BRIDGE_BETWEENNESS">Cầu nối (Bridges)</option>
+              <option value="RANDOM">Ngẫu nhiên</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Cloud Heterogeneity & Temperature -->
+        <div class="form-row">
+          <div class="form-group half">
+            <label for="input-cloud-ratio">Tỷ lệ Cloud AI (%):</label>
+            <input type="number" id="input-cloud-ratio" class="form-input" value="0" min="0" max="100" step="10">
+          </div>
+          <div class="form-group half">
+            <label for="input-temp">Nhiệt độ ($\tau$):</label>
+            <input type="number" id="input-temp" class="form-input" value="0.7" min="0.1" max="1.2" step="0.1">
+          </div>
+        </div>
+
+        <!-- Seed Message Injection -->
+        <div class="form-group">
+          <label for="input-message">Thông điệp Gốc Tiêm vào Mạng ($M_0$):</label>
+          <textarea id="input-message" class="form-textarea" rows="3">Tổ chức Y tế khuyến nghị người dân nên bổ sung đầy đủ nước và vận động nhẹ 30 phút mỗi ngày để nâng cao hệ miễn dịch.</textarea>
+          
+          <div class="quick-claims">
+            <span class="claim-chip" data-msg="Tổ chức Y tế khuyến nghị duy trì vận động thể chất 30 phút mỗi ngày để giảm 40% nguy cơ bệnh tim mạch.">Tin sự thật y tế</span>
+            <span class="claim-chip" data-msg="Tin đồn chấn động: Các nhà khoa học vừa phát hiện loại thảo dược bí mật có thể chữa dứt điểm mọi bệnh chỉ sau 3 ngày!">Tin đồn giật gân</span>
+            <span class="claim-chip" data-msg="Quy định siết chặt quản lý AI mã nguồn mở sẽ bóp nghẹt hoàn toàn đổi mới sáng tạo trong nước.">Tranh luận mở</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-panel">
+        <button class="btn btn-primary btn-block" id="btn-init">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          Khởi tạo Mạng lưới
+        </button>
+
+        <div class="btn-group">
+          <button class="btn btn-outline" id="btn-step" disabled title="Chạy từng bước nhảy để quan sát biến dạng">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Bước tiếp theo (Hop)
+          </button>
+          
+          <button class="btn btn-success" id="btn-run" disabled title="Chạy tự động toàn bộ chu trình">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              <line x1="19" y1="5" x2="19" y2="19"></line>
+            </svg>
+            Chạy Tự động
+          </button>
+
+          <button class="btn btn-danger" id="btn-stop" disabled title="Dừng mô phỏng">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16"></rect>
+            </svg>
+          </button>
+        </div>
+
+        <button class="btn btn-secondary btn-block" id="btn-export" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Xuất Dữ liệu NCKH (CSV/JSON)
+        </button>
+      </div>
+    </aside>
+
+    <!-- CENTER AREA: Interactive Network Graph Canvas -->
+    <section class="center-canvas-panel glass-panel">
+      <!-- Top HUD Stats -->
+      <div class="hud-stats-bar">
+        <div class="stat-item">
+          <span class="stat-label">Bước nhảy (Hop)</span>
+          <span class="stat-value" id="hud-hop">0 / 8</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Độ thẩm thấu R(t)</span>
+          <span class="stat-value highlight-cyan" id="hud-penetration">0.0%</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Biến dạng Ngữ nghĩa</span>
+          <span class="stat-value highlight-amber" id="hud-drift">0.000</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Chỉ số Phân cực PI</span>
+          <span class="stat-value highlight-pink" id="hud-polarization">0.000</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Hàng đợi Lan truyền</span>
+          <span class="stat-value" id="hud-queue">0 tin</span>
+        </div>
+      </div>
+
+      <!-- Real-Time Execution Status Banner & Progress Indicator -->
+      <div class="execution-status-bar" id="execution-status-bar">
+        <div class="exec-left-info">
+          <span class="exec-pulse-dot" id="exec-dot"></span>
+          <span class="exec-status-text" id="exec-status-text">Hệ thống sẵn sàng cho mô phỏng</span>
+        </div>
+        <div class="exec-center-progress">
+          <div class="exec-progress-track">
+            <div class="exec-progress-fill" id="exec-progress-fill" style="width: 0%;"></div>
+          </div>
+          <span class="exec-progress-percent" id="exec-progress-percent">0%</span>
+        </div>
+        <div class="exec-right-timer">
+          <span class="exec-timer-icon">⏱️</span>
+          <span class="exec-timer-val" id="exec-timer-val">00:00.0</span>
+          <span class="exec-eta-badge" id="exec-eta-badge">ETA: --</span>
+        </div>
+        <button class="btn-toggle-pipeline" id="btn-toggle-pipeline" title="Bật/Tắt Terminal Nhật ký Suy luận LLM Thời gian Thực">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          Nhật ký LLMs
+        </button>
+      </div>
+
+      <!-- Main Graph Stage Area (Holds dedicated canvas, floating toolbar, placeholder, terminal & inspector drawers) -->
+      <div class="network-stage-area" id="network-stage-area">
+        <!-- Pure Vis.js Network Container: Vis.js ONLY manages this empty div -->
+        <div id="network-canvas" class="network-container"></div>
+
+        <!-- Floating Canvas Controls Bar (Anime.js Waves & Fit) -->
+        <div class="canvas-controls-bar" id="canvas-controls-bar">
+          <div class="canvas-ctrl-group">
+            <label class="toggle-switch" title="Bật/Tắt xung lan truyền thông tin động trên các cạnh đồ thị (Anime.js & D3)">
+              <input type="checkbox" id="toggle-packet-waves" checked>
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">Xung sóng Lan truyền (Packet Waves)</span>
+            </label>
+          </div>
+          <div class="canvas-ctrl-group">
+            <button class="btn-ctrl-icon" id="btn-fit-graph" title="Căn giữa toàn bộ mạng lưới">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              Căn giữa
+            </button>
+            <button class="btn-ctrl-icon" id="btn-snapshot-graph" title="Chụp ảnh đồ thị khoa học HD">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Chụp đồ thị
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Placeholder -->
+        <div class="canvas-placeholder" id="canvas-placeholder">
+          <div class="pulse-circle"></div>
+          <p>Nhấn <strong>"Khởi tạo Mạng lưới"</strong> ở cột bên trái để bắt đầu mô phỏng</p>
+        </div>
+
+        <!-- Live LLM Pipeline Terminal Drawer (Collapsible) -->
+        <div class="pipeline-terminal-drawer glass-panel" id="pipeline-terminal-drawer" style="display: none;">
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <span class="terminal-dot green"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot red"></span>
+              <h4>TIẾN TRÌNH SUY LUẬN LLMS THỜI GIAN THỰC (COGNITIVE STREAM)</h4>
+            </div>
+            <div class="terminal-actions">
+              <span class="terminal-badge" id="terminal-active-model">Model: qwen2.5:3b</span>
+              <button class="btn-clear-terminal" id="btn-clear-terminal" title="Xóa màn hình log">Xóa log</button>
+              <button class="btn-close-terminal" id="btn-close-terminal" title="Đóng terminal">&times;</button>
+            </div>
+          </div>
+          <div class="terminal-body" id="terminal-body">
+            <div class="terminal-line info">[SẴN SÀNG] WebSocket kết nối hoạt động. Nhấn "Bước tiếp theo" hoặc "Chạy Tự động" để xem chuỗi suy luận của các LLMs.</div>
+          </div>
+        </div>
+
+        <!-- Agent Profile Inspector Drawer (Collapsible) -->
+        <div class="agent-inspector-drawer glass-panel" id="agent-inspector-drawer" style="display: none;">
+          <div class="inspector-header">
+            <div class="inspector-title-group">
+              <div class="inspector-avatar" id="inspector-avatar">AI</div>
+              <div>
+                <h3 id="inspector-name">Tác tử #--</h3>
+                <span class="persona-tag" id="inspector-persona">Chưa chọn</span>
+              </div>
+            </div>
+            <button class="btn-close-sm" id="btn-close-inspector" title="Đóng bảng chi tiết">&times;</button>
+          </div>
+          <div class="inspector-body">
+            <!-- Belief Gauge Bar with D3 Perception Color -->
+            <div class="belief-gauge-container">
+              <div class="belief-gauge-header">
+                <span>Điểm Niềm tin ($b_i$)</span>
+                <strong id="inspector-belief-val">0.00</strong>
+              </div>
+              <div class="belief-bar-track">
+                <div class="belief-bar-center"></div>
+                <div class="belief-bar-fill" id="inspector-belief-fill"></div>
+              </div>
+              <div class="belief-bar-labels">
+                <span>-1.0 (Bác bỏ)</span>
+                <span>0.0 (Trung lập)</span>
+                <span>+1.0 (Tuyệt đối tin)</span>
+              </div>
+            </div>
+
+            <div class="inspector-grid">
+              <div class="inspector-metric">
+                <span class="metric-lbl">Mô hình AI</span>
+                <strong class="metric-txt" id="inspector-model">--</strong>
+              </div>
+              <div class="inspector-metric">
+                <span class="metric-lbl">Trạng thái BDI</span>
+                <strong class="metric-txt" id="inspector-state">--</strong>
+              </div>
+              <div class="inspector-metric">
+                <span class="metric-lbl">Bậc liên kết</span>
+                <strong class="metric-txt" id="inspector-degree">--</strong>
+              </div>
+              <div class="inspector-metric">
+                <span class="metric-lbl">Láng giềng</span>
+                <strong class="metric-txt" id="inspector-neighbors">--</strong>
+              </div>
+            </div>
+
+            <div class="inspector-history">
+              <h4>Thông điệp phát ngôn gần nhất:</h4>
+              <div class="inspector-msg-box" id="inspector-last-msg">
+                Chưa có phát ngôn nào được ghi nhận cho tác tử này.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graph Legend -->
+        <div class="graph-legend">
+          <div class="legend-item"><span class="legend-dot dot-uninformed"></span> Chưa nhận tin</div>
+          <div class="legend-item"><span class="legend-dot dot-believer"></span> Tin tưởng (Forward)</div>
+          <div class="legend-item"><span class="legend-dot dot-skeptic"></span> Phản biện (Counter)</div>
+          <div class="legend-item"><span class="legend-dot dot-silent"></span> Giữ im lặng (Ignore)</div>
+          <div class="legend-item"><span class="legend-dot dot-hub"></span> Nút Hub / Fact-Checker</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT SIDEBAR: Live Hop Telemetry & Agent Messages -->
+    <aside class="sidebar-telemetry glass-panel">
+      <div class="panel-header">
+        <h2>Nhật ký Tương tác LLMs</h2>
+        <span class="live-pill"><span class="live-dot"></span> LIVE TRACE</span>
+      </div>
+
+      <div class="feed-filter">
+        <button class="filter-chip active" data-filter="all">Tất cả</button>
+        <button class="filter-chip" data-filter="FORWARD">Lan truyền</button>
+        <button class="filter-chip" data-filter="COUNTER">Phản biện</button>
+        <button class="filter-chip" data-filter="drift">Biến dạng cao</button>
+      </div>
+
+      <div class="message-feed" id="live-message-feed">
+        <div class="feed-empty">Chưa có thông điệp nào được truyền qua mạng.</div>
+      </div>
+    </aside>
+
+    <!-- BOTTOM SCIENTIFIC ANALYTICS CHARTS -->
+    <section class="bottom-analytics-panel glass-panel">
+      <div class="chart-card">
+        <h3>Đường cong Khuếch tán $R(t)$ (% Độ phủ)</h3>
+        <div class="chart-wrapper">
+          <canvas id="chart-diffusion"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Biến dạng Ngữ nghĩa theo Hops ($Dist_{sem}$)</h3>
+        <div class="chart-wrapper">
+          <canvas id="chart-drift"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Động học Phân cực Niềm tin (Polarization)</h3>
+        <div class="chart-wrapper">
+          <canvas id="chart-polarization"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- OLLAMA INSTALLATION MODAL -->
+  <div class="modal-overlay" id="ollama-modal">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2>Hướng dẫn Kết nối Mô hình Cục bộ Ollama</h2>
+        <button class="btn-close" id="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Ứng dụng hiện đang chạy ở <strong>Chế độ Mock thông minh</strong> (cho phép thử nghiệm toàn bộ đồ thị, đo đạc chỉ số và kiểm tra logic mà không tốn tài nguyên phần cứng). Để chạy các mô hình AI thật trên máy của bạn:</p>
+
+        <div class="guide-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Tải và cài đặt Ollama</h4>
+            <p>Tải bộ cài cho Windows tại: <a href="https://ollama.com/download/windows" target="_blank" class="link-highlight">https://ollama.com/download/windows</a></p>
+          </div>
+        </div>
+
+        <div class="guide-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Tải mô hình AI khuyến nghị cho NCKH</h4>
+            <p>Mở PowerShell trên máy và chạy các lệnh:</p>
+            <pre class="code-block"><code>ollama pull llama3:8b
+ollama pull qwen2.5:7b
+ollama pull nomic-embed-text</code></pre>
+          </div>
+        </div>
+
+        <div class="guide-step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Tự động nhận diện</h4>
+            <p>Sau khi mở Ollama, hãy bấm nút bên dưới để hệ thống quét lại cổng <code>http://localhost:11434</code>:</p>
+            <button class="btn btn-primary btn-sm" id="btn-recheck-ollama">Kiểm tra kết nối Ollama ngay</button>
+            <span id="recheck-feedback" style="margin-left: 10px; font-size: 12px;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

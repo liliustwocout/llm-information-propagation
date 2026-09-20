@@ -1,0 +1,14 @@
+simulation_id,hop,sender_id,agent_id,persona,model_type,model_name,decision,belief_score,drift_distance,incoming_message,outgoing_message,reasoning
+SIM_1789918768,1,0,1,OPINION_LEADER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,2,NEUTRAL_OBSERVER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,3,NEUTRAL_OBSERVER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,5,GULLIBLE_SPREADER,OLLAMA,llama3:8b,IGNORE,0.0,0.0,Kiểm thử thông điệp API khoa học,,Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+SIM_1789918768,1,0,7,DOGMATIC_PARTISAN,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,9,MALICIOUS_SPREADER,OLLAMA,llama3:8b,IGNORE,0.0,0.0,Kiểm thử thông điệp API khoa học,,Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+SIM_1789918768,1,0,10,GULLIBLE_SPREADER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,11,GULLIBLE_SPREADER,OLLAMA,llama3:8b,IGNORE,0.0,0.0,Kiểm thử thông điệp API khoa học,,Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+SIM_1789918768,1,0,13,GULLIBLE_SPREADER,OLLAMA,llama3:8b,IGNORE,0.0,0.0,Kiểm thử thông điệp API khoa học,,Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+SIM_1789918768,1,0,14,OPINION_LEADER,OLLAMA,llama3:8b,IGNORE,0.0,0.0,Kiểm thử thông điệp API khoa học,,Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+SIM_1789918768,1,0,17,GULLIBLE_SPREADER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,18,MALICIOUS_SPREADER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.
+SIM_1789918768,1,0,19,GULLIBLE_SPREADER,OLLAMA,llama3:8b,FORWARD,0.1,0.1601,Kiểm thử thông điệp API khoa học,Ghi nhận: Kiểm thử thông điệp API khoa học,Chuyển tiếp nguyên văn một cách thận trọng.

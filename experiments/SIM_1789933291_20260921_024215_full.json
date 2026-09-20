@@ -1,0 +1,18 @@
+{
+  "simulation_id": "SIM_1789933291",
+  "config": {
+    "simulation_id": "SIM_1789933291",
+    "topology": "BA_SCALE_FREE",
+    "num_nodes": 30,
+    "seed_message": "Tổ chức Y tế khuyến nghị người dân nên bổ sung đầy đủ nước và vận động nhẹ 30 phút mỗi ngày để nâng cao hệ miễn dịch.",
+    "local_model": "qwen2.5:3b",
+    "fact_checker_ratio": 0.1,
+    "fact_checker_placement": "HUB_DEGREE",
+    "cloud_ratio": 0.0,
+    "temperature": 0.7,
+    "max_hops": 8,
+    "seed": 42
+  },
+  "hop_metrics": [],
+  "traces": []
+}
