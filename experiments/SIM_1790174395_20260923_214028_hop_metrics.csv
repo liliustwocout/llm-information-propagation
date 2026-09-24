@@ -1,0 +1,2 @@
+hop,active_transmissions,newly_activated_nodes,penetration_rate,polarization_index,average_semantic_drift,reproduction_rate,remaining_queue_size,informed_total,hop_duration_seconds,avg_agent_duration
+1,13,"[9, 18, 19, 5]",25.0,0.4491,0.2448,0.31,6,5,32.44,2.41

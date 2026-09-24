@@ -6,6 +6,12 @@ import time
 import uvicorn
 from dotenv import load_dotenv
 
+# Đảm bảo UTF-8 trên Windows console
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 # Nạp cấu hình từ .env nếu có
 load_dotenv()
 

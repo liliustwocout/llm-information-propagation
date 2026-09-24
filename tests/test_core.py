@@ -13,7 +13,7 @@ from src.storage.telemetry import TelemetryManager
 
 def test_network_generation():
     """Kiểm tra khởi tạo các đồ thị mạng phức hợp."""
-    for topo in [TopologyType.ER_RANDOM, TopologyType.WS_SMALL_WORLD, TopologyType.BA_SCALE_FREE, TopologyType.SBM_COMMUNITY]:
+    for topo in [TopologyType.RING, TopologyType.ER_RANDOM, TopologyType.WS_SMALL_WORLD, TopologyType.BA_SCALE_FREE, TopologyType.SBM_COMMUNITY]:
         G = NetworkBuilder.generate_graph(topology=topo, num_nodes=20, seed=42)
         assert G.number_of_nodes() == 20
         assert G.number_of_edges() > 0
@@ -29,7 +29,7 @@ def test_network_generation():
 
 def test_metrics_calculation():
     """Kiểm tra tính toán các chỉ số toán học."""
-    # Cosine
+    # 1. Cosine & Semantic Drift
     v1 = [1.0, 0.0, 0.0]
     v2 = [1.0, 0.0, 0.0]
     sim = MetricsCalculator.cosine_similarity(v1, v2)
@@ -38,11 +38,43 @@ def test_metrics_calculation():
     drift = MetricsCalculator.semantic_drift_distance(v1, v2)
     assert abs(drift - 0.0) < 1e-5
 
-    # Penetration
+    # 2. BERTScore (F1)
+    b_score = MetricsCalculator.compute_bert_score(
+        reference="Vaccine COVID-19 an toàn và hiệu quả theo WHO",
+        candidate="Theo WHO thì vaccine COVID-19 rất an toàn và đạt hiệu quả cao"
+    )
+    assert "f1" in b_score
+    assert b_score["f1"] > 0.6
+
+    # 3. NLI Entailment
+    nli_entail = MetricsCalculator.compute_nli_entailment(
+        premise="Vaccine COVID-19 an toàn và hiệu quả",
+        hypothesis="Vaccine phòng chống COVID-19 mang lại hiệu quả bảo vệ an toàn"
+    )
+    assert nli_entail["label"] == "ENTAILMENT"
+    assert nli_entail["entailment"] > 0.5
+
+    nli_contra = MetricsCalculator.compute_nli_entailment(
+        premise="Vaccine COVID-19 an toàn và hiệu quả",
+        hypothesis="Vaccine không hề an toàn và là tin giả độc hại"
+    )
+    assert nli_contra["label"] == "CONTRADICTION"
+    assert nli_contra["contradiction"] > 0.5
+
+    # 4. Hallucination Rate
+    halu = MetricsCalculator.compute_hallucination_rate(
+        source_text="Hội nghị AI được tổ chức tại Hà Nội vào tháng 10",
+        generated_text="Hội nghị AI được tổ chức tại Tokyo với 5000 chuyên gia và giải thưởng 1000000 USD"
+    )
+    assert "hallucination_rate" in halu
+    assert halu["hallucination_rate"] > 0.0
+    assert "factual_consistency" in halu
+
+    # 5. Penetration
     pen = MetricsCalculator.compute_penetration_rate(50, 25)
     assert pen == 50.0
 
-    # Polarization
+    # 6. Polarization
     beliefs_consensus = [0.8, 0.8, 0.8, 0.8]
     assert MetricsCalculator.compute_polarization_index(beliefs_consensus) == 0.0
 

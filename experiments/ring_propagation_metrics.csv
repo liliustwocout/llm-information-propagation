@@ -1,0 +1,6 @@
+hop,sender_id,receiver_id,persona,cosine_sim_origin,semantic_drift,bert_score_f1,nli_label,hallucination_rate,message
+0,ORIGIN,0,OPINION_LEADER,1.0,0.0,1.0,ENTAILMENT,0.0,Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026.
+1,0,1,GULLIBLE_SPREADER,1.0,0.0,1.0,ENTAILMENT,0.0,Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026.
+2,1,2,DOGMATIC_PARTISAN,1.0,0.0,1.0,ENTAILMENT,0.0,Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026.
+3,2,3,NEUTRAL_OBSERVER,0.9739,0.0261,0.9583,ENTAILMENT,14.29,Ghi nhận: Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026.
+4,3,4,FACT_CHECKER,0.9739,0.0261,0.9583,ENTAILMENT,14.29,Ghi nhận: Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026.

@@ -210,7 +210,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // Cloud
       if (data.cloud && data.cloud.cloud_ready) {
         cloudDot.className = "status-dot";
-        cloudVal.textContent = "Sẵn sàng";
+        if (data.cloud.gemini_configured && data.cloud.openai_configured) {
+          cloudVal.textContent = "Gemini + OpenAI";
+        } else if (data.cloud.gemini_configured) {
+          cloudVal.textContent = `Gemini (${data.cloud.gemini_model || "Active"})`;
+        } else {
+          cloudVal.textContent = `OpenAI (${data.cloud.openai_model || "Active"})`;
+        }
       } else {
         cloudDot.className = "status-dot offline";
         cloudVal.textContent = "Chưa có Key (Tùy chọn)";

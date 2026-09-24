@@ -43,6 +43,7 @@ Hệ thống tài liệu được chuẩn hóa theo chuẩn hồ sơ nghiên c�
 | 05 | [`05_quy_trinh_5_buoc_nckh.md`](file:///g:/Project/NCKH_2026/.gemini/docs/05_quy_trinh_5_buoc_nckh.md) | Quy trình chuẩn 5 bước NCKH: Ý tưởng/Câu hỏi, Tổng quan tài liệu, Thiết kế phương pháp, Thu thập & Phân tích, Công bố |
 | 06 | [`06_kien_truc_cong_cu_va_ke_hoach_ky_thuat.md`](file:///g:/Project/NCKH_2026/.gemini/docs/06_kien_truc_cong_cu_va_ke_hoach_ky_thuat.md) | Kiến trúc phần mềm, kết nối Ollama/Cloud, Engine điều phối (Orchestrator), UI/Dashboard trực quan và Roadmap kỹ thuật |
 | 07 | [`07_liem_chinh_hoc_thuat_va_dao_duc_ai.md`](file:///g:/Project/NCKH_2026/.gemini/docs/07_liem_chinh_hoc_thuat_va_dao_duc_ai.md) | Nguyên tắc minh bạch số liệu, tính tái lập (Reproducibility), quản lý rủi ro tin giả tổng hợp, đạo đức học thuật & quy chuẩn trích dẫn |
+| 08 | [`08_tong_quan_tai_lieu_4_bai_bao_kinh_dien.md`](file:///g:/Project/NCKH_2026/.gemini/docs/08_tong_quan_tai_lieu_4_bai_bao_kinh_dien.md) | Tổng quan chuyên sâu 04 bài báo kinh điển (CAMEL, AutoGen, Generative Agents, HaluEval), phương pháp tra cứu học thuật & ma trận tổng hợp |
 
 ---
 

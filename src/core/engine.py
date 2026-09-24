@@ -120,7 +120,13 @@ class SimulationEngine:
             # Xác định Model Type (Ollama vs Cloud)
             is_cloud = (hash(f"cloud_{seed}_{node_id}") % 100) < (cloud_ratio * 100)
             model_type = "CLOUD" if is_cloud else "OLLAMA"
-            model_name = "gpt-4o-mini" if is_cloud else local_model
+            if is_cloud:
+                if self.router.cloud.gemini_key and not self.router.cloud.openai_key:
+                    model_name = self.router.cloud.gemini_model
+                else:
+                    model_name = "gpt-4o-mini"
+            else:
+                model_name = local_model
 
             agent = LLMAgent(
                 agent_id=node_id,

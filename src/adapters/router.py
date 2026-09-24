@@ -88,11 +88,25 @@ class ModelRouter:
                 return await self.ollama.generate(
                     prompt=prompt, system=system, temperature=temperature, seed=seed, model=model_name
                 )
-            elif model_type.upper() in ["CLOUD", "OPENAI", "GEMINI"]:
+            elif model_type.upper() in ["CLOUD", "OPENAI", "GEMINI", "DEEPSEEK"]:
                 health = await self.cloud.health_check()
                 if not health.get("cloud_ready"):
                     return await self.mock.generate(prompt=prompt, system=system, temperature=temperature, seed=seed)
-                provider = "gemini" if "gemini" in model_name.lower() else "openai"
+                
+                # Tự động chọn DeepSeek, Gemini hoặc OpenAI dựa trên model_name và API key có sẵn
+                if "deepseek" in model_name.lower() or model_type.upper() == "DEEPSEEK":
+                    provider = "deepseek"
+                elif "gemini" in model_name.lower() or model_type.upper() == "GEMINI":
+                    provider = "gemini"
+                elif "gpt" in model_name.lower() or model_type.upper() == "OPENAI":
+                    provider = "openai"
+                elif self.cloud.deepseek_key:
+                    provider = "deepseek"
+                elif self.cloud.gemini_key and not self.cloud.openai_key:
+                    provider = "gemini"
+                else:
+                    provider = "openai" if self.cloud.openai_key else ("deepseek" if self.cloud.deepseek_key else "gemini")
+
                 return await self.cloud.generate(
                     prompt=prompt, system=system, temperature=temperature, seed=seed, provider=provider
                 )
@@ -111,6 +125,11 @@ class ModelRouter:
         if preferred_type.upper() == "OLLAMA":
             is_online = await self.is_ollama_available()
             if not is_online:
+                if self.cloud.gemini_key or self.cloud.openai_key:
+                    try:
+                        return await self.cloud.embed(text)
+                    except Exception:
+                        pass
                 return await self.mock.embed(text)
         adapter = self.get_adapter(preferred_type)
         try:

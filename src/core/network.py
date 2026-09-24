@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Dict, Any, List, Tuple, Optional
 
 class TopologyType(str, Enum):
+    RING = "RING"
     ER_RANDOM = "ER_RANDOM"
     WS_SMALL_WORLD = "WS_SMALL_WORLD"
     BA_SCALE_FREE = "BA_SCALE_FREE"
@@ -12,7 +13,7 @@ class TopologyType(str, Enum):
 class NetworkBuilder:
     """
     Xây dựng và quản lý cấu trúc đồ thị mạng phức hợp (Complex Networks)
-    theo chuẩn nghiên cứu khoa học: ER, WS, BA, SBM.
+    theo chuẩn nghiên cứu khoa học: RING, ER, WS, BA, SBM.
     """
 
     @staticmethod
@@ -25,7 +26,11 @@ class NetworkBuilder:
         """
         Khởi tạo đồ thị NetworkX theo cấu trúc topo được chọn.
         """
-        if topology == TopologyType.ER_RANDOM:
+        if topology == TopologyType.RING:
+            # Mạng vòng (Ring / Cycle Topology): Chu trình kín phục vụ truyền tin tuần tự
+            G = nx.cycle_graph(n=num_nodes)
+
+        elif topology == TopologyType.ER_RANDOM:
             # Erdős–Rényi: p mặc định để đồ thị liên thông xấp xỉ
             p = kwargs.get("p", max(0.12, 2.5 * np.log(num_nodes) / num_nodes))
             G = nx.erdos_renyi_graph(n=num_nodes, p=p, seed=seed)

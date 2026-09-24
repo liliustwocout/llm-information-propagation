@@ -1,0 +1,52 @@
+================================================================================
+NHẬT KÝ THỰC NGHIỆM TRUYỀN TIN MẠNG VÒNG (RING TOPOLOGY) - NCKH 2026 NHÓM 1
+Sinh viên thực hiện: Nguyễn Văn An & Lê Phạm Thành Đạt
+Giảng viên hướng dẫn: TS. Phạm Ngọc Hưng
+Thời gian thực nghiệm: 2026-09-23 21:36:49
+Thông điệp gốc: Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026.
+================================================================================
+
+--- BƯỚC NHẢY #1: Tác tử #0 -> Tác tử #1 (GULLIBLE_SPREADER) ---
+Thời gian suy luận: 0.0s
+Suy nghĩ (Reasoning): Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+Quyết định (Decision): IGNORE | Điểm niềm tin: 0.0
+Chỉ số 1 (Cosine Similarity vs M0): 1.0
+Chỉ số 2 (BERTScore F1 vs M0): 1.0
+Chỉ số 3 (NLI Logic Status): ENTAILMENT (Entailment Ratio: 0.95)
+Chỉ số 4 (Tỷ lệ Ảo giác HaluEval): 0.0%
+Nội dung nhận được: "Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+Nội dung truyền tiếp: "Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+
+--- BƯỚC NHẢY #2: Tác tử #1 -> Tác tử #2 (DOGMATIC_PARTISAN) ---
+Thời gian suy luận: 0.0s
+Suy nghĩ (Reasoning): Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+Quyết định (Decision): IGNORE | Điểm niềm tin: 0.0
+Chỉ số 1 (Cosine Similarity vs M0): 1.0
+Chỉ số 2 (BERTScore F1 vs M0): 1.0
+Chỉ số 3 (NLI Logic Status): ENTAILMENT (Entailment Ratio: 0.95)
+Chỉ số 4 (Tỷ lệ Ảo giác HaluEval): 0.0%
+Nội dung nhận được: "Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+Nội dung truyền tiếp: "Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+
+--- BƯỚC NHẢY #3: Tác tử #2 -> Tác tử #3 (NEUTRAL_OBSERVER) ---
+Thời gian suy luận: 0.0s
+Suy nghĩ (Reasoning): Chuyển tiếp nguyên văn một cách thận trọng.
+Quyết định (Decision): FORWARD | Điểm niềm tin: 0.1
+Chỉ số 1 (Cosine Similarity vs M0): 0.9739
+Chỉ số 2 (BERTScore F1 vs M0): 0.9583
+Chỉ số 3 (NLI Logic Status): ENTAILMENT (Entailment Ratio: 0.95)
+Chỉ số 4 (Tỷ lệ Ảo giác HaluEval): 14.29%
+Nội dung nhận được: "Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+Nội dung truyền tiếp: "Ghi nhận: Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+
+--- BƯỚC NHẢY #4: Tác tử #3 -> Tác tử #4 (FACT_CHECKER) ---
+Thời gian suy luận: 0.0s
+Suy nghĩ (Reasoning): Nội dung chưa đủ tính thuyết phục hoặc không cần thiết phải chuyển tiếp.
+Quyết định (Decision): IGNORE | Điểm niềm tin: 0.0
+Chỉ số 1 (Cosine Similarity vs M0): 0.9739
+Chỉ số 2 (BERTScore F1 vs M0): 0.9583
+Chỉ số 3 (NLI Logic Status): ENTAILMENT (Entailment Ratio: 0.95)
+Chỉ số 4 (Tỷ lệ Ảo giác HaluEval): 14.29%
+Nội dung nhận được: "Ghi nhận: Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+Nội dung truyền tiếp: "Ghi nhận: Tổ chức Y tế Thế giới (WHO) khuyến cáo tiêm chủng đầy đủ để phòng ngừa các biến thể cúm mùa trong năm 2026."
+
