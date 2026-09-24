@@ -56,6 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let activeTimerInterval = null;
   let hopStartTimeStamp = 0;
   let activeProcessingNodeId = null;
+  let selectedNodeId = null;
 
   // Quick claim chips
   document.querySelectorAll(".claim-chip").forEach(chip => {
@@ -299,12 +300,12 @@ document.addEventListener("DOMContentLoaded", () => {
           if (execStatusText) {
             execStatusText.textContent = `⚡ Hop ${d.hop}: Đang suy luận Tác tử #${d.agent_id} (${d.persona}) qua ${d.model_name} [${d.message_index}/${d.total_messages}]`;
           }
-          if (network) {
-            network.redraw();
-          }
+          ensureAnimationLoop();
           logToTerminal("start", `🧠 [${d.message_index}/${d.total_messages}] Tác tử #${d.agent_id} (${d.persona}) đọc tin từ #${d.sender_id} • Mô hình: ${d.model_name}...`);
         } else if (msg.event === "AGENT_PROCESSING_END") {
           const d = msg.data;
+          activeProcessingNodeId = null;
+          if (network) network.redraw();
           if (execProgressFill) execProgressFill.style.width = `${d.progress_percent}%`;
           if (execProgressPercent) execProgressPercent.textContent = `${Math.round(d.progress_percent)}%`;
           if (execEtaBadge) execEtaBadge.textContent = d.eta_seconds > 0 ? `ETA: ~${d.eta_seconds}s` : "Gần xong";
@@ -440,7 +441,8 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      // Close inspector if open
+      // Close inspector if open and reset states
+      activeProcessingNodeId = null;
       closeAgentInspector();
 
       // Enable Action Buttons
@@ -562,10 +564,24 @@ document.addEventListener("DOMContentLoaded", () => {
     // Click handler for Agent Inspector Drawer
     network.on("click", (params) => {
       if (params.nodes && params.nodes.length > 0) {
-        openAgentInspector(params.nodes[0]);
+        selectedNodeId = params.nodes[0];
+        openAgentInspector(selectedNodeId);
+        ensureAnimationLoop();
       } else {
         closeAgentInspector();
       }
+    });
+
+    network.on("selectNode", (params) => {
+      if (params.nodes && params.nodes.length > 0) {
+        selectedNodeId = params.nodes[0];
+        ensureAnimationLoop();
+      }
+    });
+
+    network.on("deselectNode", () => {
+      selectedNodeId = null;
+      if (network) network.redraw();
     });
 
     // Hook into Vis.js Canvas Render Loop for Animated Packet Waves & Ripples
@@ -574,7 +590,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ==================== PACKET WAVE & RIPPLE ENGINE ====================
+  // ==================== ANIMATION LOOP & PACKET WAVE ENGINE ====================
+  function shouldAnimate() {
+    return (
+      activeProcessingNodeId !== null ||
+      selectedNodeId !== null ||
+      (activePackets && activePackets.length > 0) ||
+      (activeRipples && activeRipples.length > 0)
+    );
+  }
+
+  function ensureAnimationLoop() {
+    if (!packetAnimFrame && shouldAnimate()) {
+      startPacketAnimationLoop();
+    }
+  }
+
   function spawnPacketWaves(traces) {
     if (!enablePacketWaves || !network || !traces || traces.length === 0) return;
 
@@ -598,16 +629,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       setTimeout(() => {
         activePackets.push(packet);
-        if (!packetAnimFrame) startPacketAnimationLoop();
+        ensureAnimationLoop();
       }, index * 80);
     });
   }
 
   function startPacketAnimationLoop() {
-    function animate() {
-      let stillActive = false;
+    if (packetAnimFrame) return;
 
-      // Update in-flight packets
+    function animate() {
+      // 1. Update in-flight packets
       for (let i = activePackets.length - 1; i >= 0; i--) {
         const pkt = activePackets[i];
         pkt.progress += pkt.speed;
@@ -621,12 +652,10 @@ document.addEventListener("DOMContentLoaded", () => {
             color: pkt.color
           });
           activePackets.splice(i, 1);
-        } else {
-          stillActive = true;
         }
       }
 
-      // Update impact ripples
+      // 2. Update impact ripples
       for (let i = activeRipples.length - 1; i >= 0; i--) {
         const rip = activeRipples[i];
         rip.radius += 1.3;
@@ -634,14 +663,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (rip.alpha <= 0 || rip.radius >= rip.maxRadius) {
           activeRipples.splice(i, 1);
-        } else {
-          stillActive = true;
         }
       }
 
-      if (network) network.redraw();
+      if (network) {
+        network.redraw();
+      }
 
-      if (stillActive) {
+      if (shouldAnimate()) {
         packetAnimFrame = requestAnimationFrame(animate);
       } else {
         packetAnimFrame = null;
@@ -655,7 +684,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function drawPacketsAndRipples(ctx) {
     if (!network) return;
 
-    // 0. Hiệu ứng Radar Spotlight phát sáng trên Tác tử đang được LLM suy luận
+    // 0a. Hiệu ứng Radar Spotlight phát sáng trên Tác tử đang được LLM suy luận
     if (activeProcessingNodeId !== null) {
       try {
         const pos = network.getPosition(activeProcessingNodeId);
@@ -664,20 +693,75 @@ document.addEventListener("DOMContentLoaded", () => {
           const t = Date.now() / 140;
           const pulseR = 24 + Math.sin(t) * 7;
 
-          // Vòng hào quang radar ngoài
+          // Sóng xung kích mở rộng lan tỏa
+          const waveR = 18 + ((Date.now() / 30) % 32);
+          const waveAlpha = Math.max(0, 0.8 - (waveR - 18) / 32);
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, waveR, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(0, 242, 254, ${waveAlpha.toFixed(2)})`;
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+
+          // Vòng hào quang radar chính
           ctx.beginPath();
           ctx.arc(pos.x, pos.y, pulseR, 0, Math.PI * 2);
           ctx.strokeStyle = "#00f2fe";
           ctx.lineWidth = 2.8;
           ctx.shadowColor = "#00f2fe";
-          ctx.shadowBlur = 20;
+          ctx.shadowBlur = 22;
           ctx.stroke();
 
           // Tâm phát sáng
           ctx.beginPath();
           ctx.arc(pos.x, pos.y, Math.max(2, pulseR - 6), 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(0, 242, 254, 0.28)";
+          ctx.fillStyle = "rgba(0, 242, 254, 0.32)";
           ctx.fill();
+          ctx.restore();
+        }
+      } catch (e) {}
+    }
+
+    // 0b. Hiệu ứng Holographic Targeting Reticle cho Tác tử đang được chọn (Selected Agent)
+    if (selectedNodeId !== null && selectedNodeId !== activeProcessingNodeId) {
+      try {
+        const pos = network.getPosition(selectedNodeId);
+        if (pos) {
+          ctx.save();
+          const t = Date.now() / 180;
+          const pulseR = 22 + Math.sin(t * 1.5) * 3.5;
+
+          // Vòng nét đứt xoay tròn phong cách Sci-Fi Hologram
+          ctx.beginPath();
+          ctx.setLineDash([4, 4]);
+          ctx.lineDashOffset = -t * 8;
+          ctx.arc(pos.x, pos.y, pulseR + 5, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(56, 189, 248, 0.9)";
+          ctx.lineWidth = 2.2;
+          ctx.shadowColor = "#38bdf8";
+          ctx.shadowBlur = 14;
+          ctx.stroke();
+
+          // 4 vạch ngắm target crosshairs nhỏ định vị
+          ctx.setLineDash([]);
+          const armLen = 6;
+          const dist = pulseR + 7;
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 2;
+          // Trên
+          ctx.beginPath(); ctx.moveTo(pos.x, pos.y - dist); ctx.lineTo(pos.x, pos.y - dist - armLen); ctx.stroke();
+          // Dưới
+          ctx.beginPath(); ctx.moveTo(pos.x, pos.y + dist); ctx.lineTo(pos.x, pos.y + dist + armLen); ctx.stroke();
+          // Trái
+          ctx.beginPath(); ctx.moveTo(pos.x - dist, pos.y); ctx.lineTo(pos.x - dist - armLen, pos.y); ctx.stroke();
+          // Phải
+          ctx.beginPath(); ctx.moveTo(pos.x + dist, pos.y); ctx.lineTo(pos.x + dist + armLen, pos.y); ctx.stroke();
+
+          // Vầng sáng dịu bên trong tác tử được chọn
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, pulseR, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(56, 189, 248, 0.16)";
+          ctx.fill();
+
           ctx.restore();
         }
       } catch (e) {}
@@ -755,6 +839,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // ==================== AGENT PROFILE INSPECTOR DRAWER ====================
   function openAgentInspector(nodeId) {
     if (!agentInspectorDrawer) return;
+    selectedNodeId = nodeId;
+    ensureAnimationLoop();
     const node = currentGraphNodes.find(n => n.id === nodeId);
     if (!node) return;
 
@@ -808,6 +894,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function closeAgentInspector() {
+    selectedNodeId = null;
+    if (network) {
+      try { network.unselectAll(); } catch (e) {}
+      network.redraw();
+    }
     if (!agentInspectorDrawer) return;
     if (window.anime && agentInspectorDrawer.style.display !== "none") {
       anime({
