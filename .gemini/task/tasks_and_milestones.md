@@ -55,6 +55,7 @@
 
 ## 🎯 2. Các Nhiệm vụ Tiếp theo (Next Steps / Roadmap)
 
-- [ ] **TASK-29:** Tiến hành chạy hàng loạt 36 kịch bản thực nghiệm ma trận đầy đủ (4 Topologies x 3 Tỷ lệ can thiệp x 3 Seeds) qua lệnh `python run_experiments.py --mode matrix`.
-- [ ] **TASK-30:** Sử dụng thư viện `scikit-learn` / `statsmodels` viết script phân tích phương sai Two-way ANOVA từ các file `experiments/*_hop_metrics.csv` để kiểm định giả thuyết H1, H2, H3, H4.
+- [ ] **TASK-29:** Tiến hành chạy hàng loạt ma trận thực nghiệm đầy đủ (28 kịch bản × 10 seeds = 280 phiên) qua lệnh `python run_experiments.py --mode full --model qwen2.5:3b --nodes 15 --hops 4 --seeds 42 43 44 45 46 47 48 49 50 51`. Script đã được nâng cấp hỗ trợ 3 mode: `quick` (2 đợt), `matrix` (7 đợt), `full` (28 kịch bản × K seeds). File tổng hợp `SUMMARY_*.csv` được xuất tự động.
+- [ ] **TASK-30:** Chạy script phân tích thống kê `python analyze_experiments.py` để kiểm định 4 giả thuyết H1-H4 bằng Two-way ANOVA (statsmodels), T-test, và Tukey HSD post-hoc. Script xuất 5 biểu đồ khoa học (box-plot, heatmap, bar-chart) vào `experiments/analysis/`.
 - [ ] **TASK-31:** Soạn thảo bản thảo bài báo khoa học định dạng $\text{\LaTeX}$ (IEEEtran) để gửi hội nghị NCKH hoặc tạp chí khoa học.
+

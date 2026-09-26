@@ -119,7 +119,8 @@ g:\Project\NCKH_2026/
 │   └── test_api.py                # Kiểm thử toàn diện API endpoints
 ├── experiments/                   # Thư mục lưu dữ liệu thực nghiệm (CSV, JSON)
 ├── run.py                         # Điểm khởi động duy nhất (One-click Start)
-├── run_experiments.py             # Script tự động chạy ma trận thực nghiệm NCKH
+├── run_experiments.py             # Script tự động chạy ma trận thực nghiệm NCKH (3 modes: quick/matrix/full)
+├── analyze_experiments.py         # Script phân tích ANOVA, T-test & trực quan hóa kết quả thực nghiệm
 └── README.md                      # Tài liệu tổng quan dự án
 ```
 
@@ -185,10 +186,24 @@ Dành riêng cho việc thu thập số liệu đa kịch bản đưa vào bản
 # Chạy nhanh 2 kịch bản đối chứng (Không can thiệp vs Can thiệp 20% Fact-Checker):
 python run_experiments.py --mode quick --model qwen2.5:3b --nodes 15 --hops 4
 
-# Chạy ma trận toàn diện 7 kịch bản trên 4 loại Topo mạng:
+# Chạy ma trận 7 kịch bản đại diện trên 4 loại Topo mạng:
 python run_experiments.py --mode matrix --model qwen2.5:3b --nodes 15 --hops 4
+
+# Chạy ma trận ĐẦY ĐỦ 28 kịch bản × 10 seeds = 280 phiên (dành cho bài báo NCKH):
+python run_experiments.py --mode full --model qwen2.5:3b --nodes 15 --hops 4 --seeds 42 43 44 45 46 47 48 49 50 51
 ```
-Dữ liệu sẽ tự động xuất ra bảng trực tiếp trên màn hình và lưu vào thư mục `experiments/`.
+Dữ liệu sẽ tự động xuất ra bảng trực tiếp trên màn hình, lưu vào thư mục `experiments/`, kèm file tổng hợp `SUMMARY_*.csv`.
+
+### Phương thức 4: Phân tích Thống kê ANOVA & Trực quan hóa
+Sau khi thu thập dữ liệu, chạy script phân tích để kiểm định giả thuyết H1-H4:
+```powershell
+# Tự động tìm file SUMMARY_*.csv mới nhất và phân tích:
+python analyze_experiments.py
+
+# Hoặc chỉ định file cụ thể:
+python analyze_experiments.py --input experiments/SUMMARY_20260926_120000.csv --output-dir experiments/analysis
+```
+Kết quả bao gồm: Bảng thống kê mô tả, kiểm định T-test / Two-way ANOVA, post-hoc Tukey HSD, và 5 biểu đồ khoa học (box-plot, heatmap, bar-chart).
 
 ---
 
