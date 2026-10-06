@@ -60,6 +60,15 @@
       <!-- Mode Badge -->
       <div class="badge-tag" id="active-engine-badge">Engine: MOCK / SIMULATION</div>
 
+      <button class="btn btn-outline-guide btn-sm" id="btn-guide-modal" title="Xem hướng dẫn sử dụng và ý nghĩa các thông số thực nghiệm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        Hướng dẫn Thực nghiệm
+      </button>
+
       <button class="btn btn-secondary btn-sm" id="btn-ollama-guide">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"></circle>
@@ -78,7 +87,16 @@
     <aside class="sidebar-config glass-panel">
       <div class="panel-header">
         <h2>Thiết lập Thực nghiệm</h2>
-        <span class="badge">Chuẩn NCKH</span>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="btn-guide-inline" id="btn-sidebar-guide" title="Xem giải thích các thông số thực nghiệm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+          <span class="badge">Chuẩn NCKH</span>
+        </div>
       </div>
 
       <div class="form-scrollable">
@@ -107,11 +125,11 @@
         <!-- Node Count & Max Hops -->
         <div class="form-row">
           <div class="form-group half">
-            <label for="input-nodes">Số lượng Tác tử ($N$):</label>
+            <label for="input-nodes">Số lượng Tác tử (<i>N</i>):</label>
             <input type="number" id="input-nodes" class="form-input" value="30" min="10" max="100" step="5">
           </div>
           <div class="form-group half">
-            <label for="input-hops">Số Hop tối đa ($T$):</label>
+            <label for="input-hops">Số Hop tối đa (<i>T</i>):</label>
             <input type="number" id="input-hops" class="form-input" value="8" min="3" max="20">
           </div>
         </div>
@@ -143,14 +161,14 @@
             <input type="number" id="input-cloud-ratio" class="form-input" value="0" min="0" max="100" step="10">
           </div>
           <div class="form-group half">
-            <label for="input-temp">Nhiệt độ ($\tau$):</label>
+            <label for="input-temp">Nhiệt độ (<i>&tau;</i>):</label>
             <input type="number" id="input-temp" class="form-input" value="0.7" min="0.1" max="1.2" step="0.1">
           </div>
         </div>
 
         <!-- Seed Message Injection -->
         <div class="form-group">
-          <label for="input-message">Thông điệp Gốc Tiêm vào Mạng ($M_0$):</label>
+          <label for="input-message">Thông điệp Gốc Tiêm vào Mạng (<i>M</i><sub>0</sub>):</label>
           <textarea id="input-message" class="form-textarea" rows="3">Tổ chức Y tế khuyến nghị người dân nên bổ sung đầy đủ nước và vận động nhẹ 30 phút mỗi ngày để nâng cao hệ miễn dịch.</textarea>
           
           <div class="quick-claims">
@@ -186,9 +204,9 @@
             Chạy Tự động
           </button>
 
-          <button class="btn btn-danger" id="btn-stop" disabled title="Dừng mô phỏng">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16"></rect>
+          <button class="btn btn-danger" id="btn-stop" disabled title="Dừng mô phỏng (Stop)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="5" y="5" width="14" height="14" rx="2"></rect>
             </svg>
           </button>
         </div>
@@ -213,15 +231,15 @@
           <span class="stat-value" id="hud-hop">0 / 8</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Độ thẩm thấu R(t)</span>
+          <span class="stat-label">Độ thẩm thấu <i>R</i>(<i>t</i>)</span>
           <span class="stat-value highlight-cyan" id="hud-penetration">0.0%</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Biến dạng Ngữ nghĩa</span>
+          <span class="stat-label">Biến dạng Ngữ nghĩa (<i>Dist</i><sub>sem</sub>)</span>
           <span class="stat-value highlight-amber" id="hud-drift">0.000</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Chỉ số Phân cực PI</span>
+          <span class="stat-label">Chỉ số Phân cực (<i>PI</i>)</span>
           <span class="stat-value highlight-pink" id="hud-polarization">0.000</span>
         </div>
         <div class="stat-item">
@@ -243,7 +261,10 @@
           <span class="exec-progress-percent" id="exec-progress-percent">0%</span>
         </div>
         <div class="exec-right-timer">
-          <span class="exec-timer-icon">⏱️</span>
+          <svg class="exec-timer-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
           <span class="exec-timer-val" id="exec-timer-val">00:00.0</span>
           <span class="exec-eta-badge" id="exec-eta-badge">ETA: --</span>
         </div>
@@ -321,7 +342,7 @@
             <!-- Belief Gauge Bar with D3 Perception Color -->
             <div class="belief-gauge-container">
               <div class="belief-gauge-header">
-                <span>Điểm Niềm tin ($b_i$)</span>
+                <span>Điểm Niềm tin (<i>b</i><sub>i</sub>)</span>
                 <strong id="inspector-belief-val">0.00</strong>
               </div>
               <div class="belief-bar-track">
@@ -396,21 +417,21 @@
     <!-- BOTTOM SCIENTIFIC ANALYTICS CHARTS -->
     <section class="bottom-analytics-panel glass-panel">
       <div class="chart-card">
-        <h3>Đường cong Khuếch tán $R(t)$ (% Độ phủ)</h3>
+        <h3>Đường cong Khuếch tán <i>R</i>(<i>t</i>) (% Độ phủ)</h3>
         <div class="chart-wrapper">
           <canvas id="chart-diffusion"></canvas>
         </div>
       </div>
 
       <div class="chart-card">
-        <h3>Biến dạng Ngữ nghĩa theo Hops ($Dist_{sem}$)</h3>
+        <h3>Biến dạng Ngữ nghĩa theo Hops (<i>Dist</i><sub>sem</sub>)</h3>
         <div class="chart-wrapper">
           <canvas id="chart-drift"></canvas>
         </div>
       </div>
 
       <div class="chart-card">
-        <h3>Động học Phân cực Niềm tin (Polarization)</h3>
+        <h3>Động học Phân cực Niềm tin (<i>PI</i>)</h3>
         <div class="chart-wrapper">
           <canvas id="chart-polarization"></canvas>
         </div>
@@ -455,6 +476,228 @@ ollama pull nomic-embed-text</code></pre>
             <p>Sau khi mở Ollama, hãy bấm nút bên dưới để hệ thống quét lại cổng <code>http://localhost:11434</code>:</p>
             <button class="btn btn-primary btn-sm" id="btn-recheck-ollama">Kiểm tra kết nối Ollama ngay</button>
             <span id="recheck-feedback" style="margin-left: 10px; font-size: 12px;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USER GUIDE & SCIENTIFIC PARAMETERS MODAL -->
+  <div class="modal-overlay" id="guide-modal">
+    <div class="modal-card modal-card-wide glass-panel">
+      <div class="modal-header">
+        <div class="guide-header-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent-cyan); flex-shrink:0;">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <div>
+            <h2>Hướng dẫn Sử dụng & Thông số Thực nghiệm</h2>
+            <p class="guide-header-sub">Tài liệu Khoa học • Đề tài NCKH 2026: Mô phỏng Lan truyền Thông tin Đa tác tử LLMs</p>
+          </div>
+        </div>
+        <button class="btn-close" id="btn-close-guide-modal">&times;</button>
+      </div>
+
+      <!-- Navigation Tabs inside Guide -->
+      <div class="guide-tabs-bar">
+        <button class="guide-tab-btn active" data-tab="tab-params">1. Thông số Thực nghiệm</button>
+        <button class="guide-tab-btn" data-tab="tab-metrics">2. Chỉ số Đo lường NCKH</button>
+        <button class="guide-tab-btn" data-tab="tab-visuals">3. Ý nghĩa Hiệu ứng Trực quan</button>
+        <button class="guide-tab-btn" data-tab="tab-workflow">4. Quy trình Thao tác 4 Bước</button>
+      </div>
+
+      <div class="modal-body guide-modal-body">
+        <!-- TAB 1: THÔNG SỐ THỰC NGHIỆM -->
+        <div class="guide-tab-content active" id="tab-params">
+          <div class="guide-section">
+            <h3 class="guide-sec-title">Cấu trúc Topo Mạng (Network Topology)</h3>
+            <p class="guide-p">Mô hình hóa hình thái liên kết xã hội giữa các tác tử LLM, quyết định đường dẫn truyền tin:</p>
+            <div class="guide-grid">
+              <div class="guide-card">
+                <span class="guide-badge-cyan">BA (Scale-Free)</span>
+                <h4>Mạng Không Tỷ lệ (Barabási–Albert)</h4>
+                <p>Phân bố bậc theo luật lũy thừa <em>P(k) ~ k<sup>-γ</sup></em>. Xuất hiện các siêu nút (Hubs) có nhiều liên kết kết nối vượt trội. Mô phỏng mạng xã hội Twitter/X nơi thông tin qua Hubs bùng nổ theo cấp số nhân.</p>
+              </div>
+              <div class="guide-card">
+                <span class="guide-badge-cyan">WS (Small-World)</span>
+                <h4>Mạng Thế giới nhỏ (Watts–Strogatz)</h4>
+                <p>Hệ số gom cụm cao <em>C</em> kết hợp khoảng cách đường đi ngắn trung bình <em>L</em>. Mô phỏng mạng lưới bạn bè, gia đình, đồng nghiệp thân thiết (Facebook, Zalo).</p>
+              </div>
+              <div class="guide-card">
+                <span class="guide-badge-cyan">ER (Random)</span>
+                <h4>Mạng Ngẫu nhiên (Erdős–Rényi)</h4>
+                <p>Xác suất kết nối <em>p</em> đồng đều giữa mọi cặp tác tử. Phân bố bậc Poisson chuẩn. Đóng vai trò <strong>nhóm đối chứng (Control Group)</strong> để đánh giá tác động đặc thù của topo mạng.</p>
+              </div>
+              <div class="guide-card">
+                <span class="guide-badge-cyan">SBM (Community)</span>
+                <h4>Mạng Buồng vang (Stochastic Block Model)</h4>
+                <p>Mật độ liên kết nội bộ cao, liên kết liên cụm thưa thớt. Mô phỏng hiện tượng <em>buồng vang thông tin (Echo Chambers)</em> và phân hóa cộng đồng cực đoan trên mạng xã hội.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="guide-section" style="margin-top: 18px;">
+            <h3 class="guide-sec-title">Các Tham số Cấu hình Mô phỏng</h3>
+            <table class="guide-table">
+              <thead>
+                <tr>
+                  <th style="width: 22%;">Tham số</th>
+                  <th style="width: 15%;">Ký hiệu</th>
+                  <th>Ý nghĩa Khoa học & Ảnh hưởng Thực nghiệm</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Số lượng Tác tử</strong></td>
+                  <td><code>N</code></td>
+                  <td>Quy mô quần thể tác tử AI trong mạng lưới (10 - 100 tác tử). Quy mô 30-50 tác tử giúp cân bằng giữa độ chính xác thống kê và tốc độ suy luận LLM.</td>
+                </tr>
+                <tr>
+                  <td><strong>Số bước nhảy tối đa</strong></td>
+                  <td><code>T (Max Hops)</code></td>
+                  <td>Chiều sâu lan truyền của thác thông tin qua các thế hệ truyền tin. Mỗi hop tương ứng với một chu kỳ tác tử nhận tin, suy luận nhận thức và ra quyết định.</td>
+                </tr>
+                <tr>
+                  <td><strong>Tỷ lệ Fact-Checker</strong></td>
+                  <td><code>0% - 20%</code></td>
+                  <td>Tỷ lệ tác tử được trang bị persona kiểm chứng sự thật khách quan (Fact-Checker) nhằm ngăn chặn tin sai lệch và cải chính thông tin.</td>
+                </tr>
+                <tr>
+                  <td><strong>Vị trí can thiệp</strong></td>
+                  <td><code>Placement</code></td>
+                  <td>
+                    <strong>Nút Trục (Hubs)</strong>: Đặt tại nút có Degree Centrality cao nhất (dập tắt tin đồn ở trung tâm đầu mối).<br>
+                    <strong>Cầu nối (Bridges)</strong>: Đặt tại nút có Betweenness Centrality cao nhất (chặn rò rỉ xuyên buồng vang).<br>
+                    <strong>Ngẫu nhiên (Random)</strong>: Phân bổ ngẫu nhiên làm baseline đối chứng.
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Nhiệt độ suy luận</strong></td>
+                  <td><code>&tau; (Temp)</code></td>
+                  <td>Mức độ ngẫu nhiên khi LLM sinh câu trả lời (0.1 - 1.2). Nhiệt độ càng cao, tác tử càng thêm bớt chi tiết, làm tốc độ biến dạng ngữ nghĩa tăng vọt.</td>
+                </tr>
+                <tr>
+                  <td><strong>Thông điệp Gốc</strong></td>
+                  <td><code>M₀ (Seed)</code></td>
+                  <td>Nội dung thông tin ban đầu được tiêm vào nút nguồn (Seed Node #0) để kích hoạt toàn bộ chuỗi lan truyền.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 2: CHỈ SỐ ĐO LƯỜNG NCKH -->
+        <div class="guide-tab-content" id="tab-metrics">
+          <div class="guide-section">
+            <h3 class="guide-sec-title">Hệ thống Chỉ số Đo lường Chuẩn NCKH</h3>
+            <div class="guide-metric-box">
+              <div class="metric-box-header">
+                <span class="metric-box-badge cyan">1. Độ Thẩm thấu R(t) (Penetration Rate)</span>
+                <code>R(t) = |Informed(t)| / N &times; 100%</code>
+              </div>
+              <p>Đo lường tỷ lệ phần trăm tác tử trong toàn bộ mạng lưới đã tiếp nhận và xử lý thông tin tại bước nhảy <em>t</em>. Đồ thị <em>R(t)</em> thể hiện tốc độ khuếch tán hình chữ S (S-curve) theo mô hình dịch tễ học và lan truyền xã hội.</p>
+            </div>
+
+            <div class="guide-metric-box" style="margin-top: 12px;">
+              <div class="metric-box-header">
+                <span class="metric-box-badge amber">2. Biến dạng Ngữ nghĩa theo Hops (Dist_sem)</span>
+                <code>Dist_sem(M_t, M₀) = 1 - CosineSimilarity(e_t, e₀)</code>
+              </div>
+              <p>Sử dụng mô hình Sentence Embedding (nomic-embed-text) để ánh xạ các thông điệp thành vector không gian đa chiều. <em>Dist_sem</em> phản ánh định lượng hiện tượng <strong>"tam sao thất bản"</strong> khi thông tin truyền qua nhiều thế hệ LLMs. Giá trị nằm trong khoảng [0, 2], càng lớn tức thông điệp càng bị bóp méo xa rời sự thật gốc.</p>
+            </div>
+
+            <div class="guide-metric-box" style="margin-top: 12px;">
+              <div class="metric-box-header">
+                <span class="metric-box-badge pink">3. Chỉ số Phân cực Niềm tin (PI - Polarization Index)</span>
+                <code>PI = (1/N) &times; &sum;(b_i - b_mean)&sup2;</code>
+              </div>
+              <p>Tính bằng phương sai của phân bố điểm niềm tin <em>b_i &isin; [-1.0, +1.0]</em> của các tác tử trong mạng. <em>PI &rarr; 0</em> biểu thị sự đồng thuận ý kiến; <em>PI</em> cao biểu thị sự chia rẽ sâu sắc thành các phe phái cực đoan đối lập.</p>
+            </div>
+
+            <div class="guide-metric-box" style="margin-top: 12px;">
+              <div class="metric-box-header">
+                <span class="metric-box-badge emerald">4. Điểm Niềm tin Cá nhân (b_i) & Quyết định Hành vi</span>
+                <code>b_i &isin; [-1.0, +1.0]</code>
+              </div>
+              <p>
+                <strong>b_i &rarr; +1.0</strong>: Tuyệt đối tin tưởng &rarr; Chọn <code>FORWARD</code> (chuyển tiếp cho láng giềng).<br>
+                <strong>b_i &rarr; -1.0</strong>: Hoàn toàn bác bỏ &rarr; Chọn <code>COUNTER</code> (phản biện, phát biểu cải chính).<br>
+                <strong>b_i &approx; 0.0</strong>: Trung lập hoặc hoài nghi &rarr; Chọn <code>IGNORE</code> (im lặng, ngắt thác thông tin).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: Ý NGHĨA TRỰC QUAN & HIỆU ỨNG -->
+        <div class="guide-tab-content" id="tab-visuals">
+          <div class="guide-section">
+            <h3 class="guide-sec-title">Ý nghĩa các Thành phần Trực quan trên Đồ thị</h3>
+            <div class="guide-grid">
+              <div class="guide-card">
+                <h4>Hiệu ứng Chấm tròn Di chuyển dọc Đường truyền</h4>
+                <p>Khi mô phỏng chạy, các chấm photon phát sáng nhỏ bé lướt đều đặn từ nút gửi sang nút nhận dọc theo các cạnh đồ thị. Đây là mô phỏng trực quan của các gói tin dữ liệu (Data Packets) đang được truyền qua các kênh giao tiếp mạng.</p>
+              </div>
+              <div class="guide-card">
+                <h4>Vòng Radar Spotlight Xoay tròn</h4>
+                <p>Hiệu ứng hào quang xung kích màu xanh ngọc bao quanh tác tử đang được LLM nạp prompt và xử lý suy luận nhận thức trong Cognitive Stream.</p>
+              </div>
+              <div class="guide-card">
+                <h4>Vòng Hologram Ngắm Mục tiêu</h4>
+                <p>Hiệu ứng đường viền nét đứt xoay tròn xuất hiện khi bạn nhấp chuột chọn bất kỳ tác tử nào để xem chi tiết hồ sơ nhận thức trong ngăn kéo Inspector Drawer.</p>
+              </div>
+              <div class="guide-card">
+                <h4>Hình dạng Nút Đồ thị</h4>
+                <p>
+                  <strong>Hình tròn (Circle)</strong>: Tác tử thông thường.<br>
+                  <strong>Hình thoi (Diamond)</strong>: Nút Hub có bậc liên kết cao hoặc tác tử Fact-Checker được can thiệp.
+                </p>
+              </div>
+            </div>
+
+            <h4 style="margin-top: 16px; font-size: 0.85rem; color: var(--text-main);">Bảng Mã Màu Trạng thái Nhận thức</h4>
+            <div class="guide-color-legend">
+              <div class="guide-legend-row"><span class="legend-color-dot" style="background:#475569;"></span> <strong>Uninformed (Xám tối)</strong>: Tác tử chưa tiếp cận được thông tin.</div>
+              <div class="guide-legend-row"><span class="legend-color-dot" style="background:#10b981;"></span> <strong>Infected Believer (Xanh lục)</strong>: Tác tử tin thông điệp và chủ động lan truyền (FORWARD).</div>
+              <div class="guide-legend-row"><span class="legend-color-dot" style="background:#f59e0b;"></span> <strong>Inoculated Skeptic (Cam hổ phách)</strong>: Tác tử nghi ngờ/bác bỏ và phát ngôn phản biện (COUNTER).</div>
+              <div class="guide-legend-row"><span class="legend-color-dot" style="background:#64748b;"></span> <strong>Refractory (Xám khói)</strong>: Tác tử chọn giữ im lặng (IGNORE), ngắt thác thông tin.</div>
+              <div class="guide-legend-row"><span class="legend-color-dot" style="background:#00f2fe;"></span> <strong>Seed / Fact-Checker (Xanh ngọc / Kim cương)</strong>: Nút nguồn tiêm tin hoặc nút kiểm chứng sự thật.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: QUY TRÌNH THỰC NGHIỆM -->
+        <div class="guide-tab-content" id="tab-workflow">
+          <div class="guide-section">
+            <h3 class="guide-sec-title">Quy trình Thực nghiệm 4 Bước Chuẩn NCKH</h3>
+            <div class="workflow-step-card">
+              <div class="wf-step-num">1</div>
+              <div class="wf-step-body">
+                <h4>Cấu hình Thực nghiệm</h4>
+                <p>Chọn cấu trúc Topo Mạng (ví dụ Barabási–Albert BA để mô phỏng mạng xã hội thực), thiết lập quy mô N = 30-50, chọn tỷ lệ Fact-Checker và chọn vị trí can thiệp (Hubs để chặn đầu mối hoặc Bridges để chặn ranh giới buồng vang).</p>
+              </div>
+            </div>
+            <div class="workflow-step-card">
+              <div class="wf-step-num">2</div>
+              <div class="wf-step-body">
+                <h4>Khởi tạo Mạng lưới</h4>
+                <p>Nhấn nút <strong>"Khởi tạo Mạng lưới"</strong>. Hệ thống sẽ sinh cấu trúc đồ thị phức theo thuật toán toán học, phân bổ persona nhận thức BDI cho từng tác tử và tiêm thông điệp gốc <em>M₀</em> vào nút nguồn #0.</p>
+              </div>
+            </div>
+            <div class="workflow-step-card">
+              <div class="wf-step-num">3</div>
+              <div class="wf-step-body">
+                <h4>Thực thi Mô phỏng & Quan sát Trực quan</h4>
+                <p>Nhấn <strong>"Bước tiếp theo (Hop)"</strong> để kiểm tra chi tiết từng thế hệ hoặc nhấn <strong>"Chạy Tự động"</strong>. Quan sát luồng chấm tròn phát sáng di chuyển dọc các đường truyền, các vòng radar xoay quanh tác tử đang suy luận và theo dõi tiến trình trong Terminal Cognitive Stream.</p>
+              </div>
+            </div>
+            <div class="workflow-step-card">
+              <div class="wf-step-num">4</div>
+              <div class="wf-step-body">
+                <h4>Phân tích Đồ thị & Xuất Dữ liệu</h4>
+                <p>Theo dõi 3 biểu đồ động học ở bảng dưới: Độ thẩm thấu <em>R(t)</em>, Biến dạng ngữ nghĩa <em>Dist_sem</em>, và Phân cực <em>PI</em>. Sau khi hoàn tất, nhấn <strong>"Xuất Dữ liệu NCKH (CSV/JSON)"</strong> để lưu trữ toàn bộ lịch sử vết truyền tin (traces) phục vụ viết báo cáo khoa học.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
