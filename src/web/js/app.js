@@ -290,21 +290,26 @@ document.addEventListener("DOMContentLoaded", () => {
           startHopTimer();
           if (execProgressFill) execProgressFill.style.width = "0%";
           if (execProgressPercent) execProgressPercent.textContent = "0%";
-          if (execStatusText) execStatusText.textContent = `⚡ Đang xử lý Hop ${d.hop}: Hàng đợi gồm ${d.total_messages} thông điệp...`;
+          if (execStatusText) execStatusText.textContent = `Đang xử lý Hop ${d.hop}: Hàng đợi gồm ${d.total_messages} thông điệp...`;
           if (execEtaBadge) execEtaBadge.textContent = "ETA: Đang tính...";
-          logToTerminal("info", `🚀 === BẮT ĐẦU HOP ${d.hop}: Đang phân tích ${d.total_messages} thông điệp qua LLMs ===`);
+          logToTerminal("info", `[BẮT ĐẦU] Hop ${d.hop}: Đang phân tích ${d.total_messages} thông điệp qua LLMs...`);
         } else if (msg.event === "AGENT_PROCESSING_START") {
           const d = msg.data;
           activeProcessingNodeId = d.agent_id;
           if (terminalActiveModel) terminalActiveModel.textContent = `Model: ${d.model_name}`;
           if (execStatusText) {
-            execStatusText.textContent = `⚡ Hop ${d.hop}: Đang suy luận Tác tử #${d.agent_id} (${d.persona}) qua ${d.model_name} [${d.message_index}/${d.total_messages}]`;
+            execStatusText.textContent = `Hop ${d.hop}: Đang suy luận Tác tử #${d.agent_id} (${d.persona}) qua ${d.model_name} [${d.message_index}/${d.total_messages}]`;
           }
           ensureAnimationLoop();
-          logToTerminal("start", `🧠 [${d.message_index}/${d.total_messages}] Tác tử #${d.agent_id} (${d.persona}) đọc tin từ #${d.sender_id} • Mô hình: ${d.model_name}...`);
+          logToTerminal("start", `[TIẾN TRÌNH] [${d.message_index}/${d.total_messages}] Tác tử #${d.agent_id} (${d.persona}) đọc tin từ #${d.sender_id} • Mô hình: ${d.model_name}...`);
+
+          // Kích hoạt chùm chấm tròn phát sáng di chuyển dọc theo đường truyền mô phỏng truyền tin
+          spawnAgentIncomingStream(d.sender_id, d.agent_id);
         } else if (msg.event === "AGENT_PROCESSING_END") {
           const d = msg.data;
           activeProcessingNodeId = null;
+          stopAgentIncomingStream();
+
           if (network) network.redraw();
           if (execProgressFill) execProgressFill.style.width = `${d.progress_percent}%`;
           if (execProgressPercent) execProgressPercent.textContent = `${Math.round(d.progress_percent)}%`;
@@ -321,21 +326,27 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
 
-          const decIcon = d.decision === "FORWARD" ? "➡️ Chuyển tiếp (FORWARD)" : (d.decision === "COUNTER" ? "🛡️ Phản biện (COUNTER)" : "🤐 Giữ im lặng (IGNORE)");
+          // Khi tác tử quyết định Forward hoặc Counter, phát các chấm tròn phát sáng sang láng giềng
+          if (d.decision === "FORWARD" || d.decision === "COUNTER") {
+            spawnAgentBroadcastWaves(d.agent_id, d.decision);
+          }
+
+          const decText = d.decision === "FORWARD" ? "Chuyển tiếp (FORWARD)" : (d.decision === "COUNTER" ? "Phản biện (COUNTER)" : "Giữ im lặng (IGNORE)");
           const typeClass = d.decision === "FORWARD" ? "success" : (d.decision === "COUNTER" ? "counter" : "ignore");
-          logToTerminal(typeClass, `✅ Tác tử #${d.agent_id} hoàn tất (${d.inference_duration}s) • ${decIcon} • Niềm tin: ${d.belief_score >= 0 ? '+' : ''}${d.belief_score} • Drift: ${d.drift_distance.toFixed(3)}`);
+          logToTerminal(typeClass, `[KẾT QUẢ] Tác tử #${d.agent_id} hoàn tất (${d.inference_duration}s) • ${decText} • Niềm tin: ${d.belief_score >= 0 ? '+' : ''}${d.belief_score} • Drift: ${d.drift_distance.toFixed(3)}`);
           if (d.reasoning) {
-            logToTerminal("info", `   💭 Lập luận: "${d.reasoning.substring(0, 100)}${d.reasoning.length > 100 ? '...' : ''}"`);
+            logToTerminal("info", `   [LẬP LUẬN] "${d.reasoning.substring(0, 100)}${d.reasoning.length > 100 ? '...' : ''}"`);
           }
         } else if (msg.event === "HOP_COMPLETED") {
           const summary = msg.data.hop_summary;
           stopHopTimer(summary ? summary.hop_duration_seconds : null);
+          stopAgentIncomingStream();
           if (execProgressFill) execProgressFill.style.width = "100%";
           if (execProgressPercent) execProgressPercent.textContent = "100%";
           if (execEtaBadge) execEtaBadge.textContent = "Hoàn tất";
           if (execStatusText && summary) {
-            execStatusText.textContent = `✅ Hoàn thành Hop ${summary.hop} trong ${summary.hop_duration_seconds || 0}s (${summary.active_transmissions} tác tử, TB ${summary.avg_agent_duration || 0}s/tác tử)`;
-            logToTerminal("success", `🏁 === HOÀN THÀNH HOP ${summary.hop} TRONG ${summary.hop_duration_seconds}s (Độ phủ: ${summary.penetration_rate}%, Drift: ${summary.average_semantic_drift}, Phân cực: ${summary.polarization_index}) ===\n`);
+            execStatusText.textContent = `Hoàn thành Hop ${summary.hop} trong ${summary.hop_duration_seconds || 0}s (${summary.active_transmissions} tác tử, TB ${summary.avg_agent_duration || 0}s/tác tử)`;
+            logToTerminal("success", `[HOÀN TẤT] Hop ${summary.hop} trong ${summary.hop_duration_seconds}s (Độ phủ: ${summary.penetration_rate}%, Drift: ${summary.average_semantic_drift}, Phân cực: ${summary.polarization_index})\n`);
           }
           handleHopCompleted(msg.data);
         }
@@ -423,7 +434,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (execEtaBadge) execEtaBadge.textContent = "ETA: --";
       if (execStatusText) execStatusText.textContent = `Đã sinh mạng lưới ${data.total_nodes} tác tử. Sẵn sàng mô phỏng Hop 1.`;
       if (execDot) execDot.className = "exec-pulse-dot";
-      logToTerminal("info", `🌐 Khởi tạo mạng lưới mới: ${data.total_nodes} tác tử, nút nguồn #${data.seed_node_id} (Seed Injection).`);
+      logToTerminal("info", `[KHỞI TẠO] Mạng lưới mới: ${data.total_nodes} tác tử, nút nguồn #${data.seed_node_id} (Seed Injection).`);
 
       // Reset Message Feed
       allTraces = [];
@@ -606,6 +617,69 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Stream photon packets (chấm tròn bé bé) along the transmission channel
+  let activeStreamInterval = null;
+
+  function stopAgentIncomingStream() {
+    if (activeStreamInterval) {
+      clearInterval(activeStreamInterval);
+      activeStreamInterval = null;
+    }
+  }
+
+  function spawnAgentIncomingStream(fromId, toId) {
+    if (!enablePacketWaves || !network || fromId === undefined || toId === undefined || fromId === toId) return;
+    stopAgentIncomingStream();
+
+    const sendSinglePacket = (speedMult = 1.0) => {
+      activePackets.push({
+        from: fromId,
+        to: toId,
+        progress: 0,
+        color: "#00f2fe",
+        speed: (0.024 + Math.random() * 0.005) * speedMult
+      });
+      ensureAnimationLoop();
+    };
+
+    // Chuỗi 3 chấm photon bé bé đầu tiên lướt trên đường truyền
+    sendSinglePacket(1.0);
+    setTimeout(() => sendSinglePacket(1.05), 180);
+    setTimeout(() => sendSinglePacket(0.95), 360);
+
+    // Tiếp tục phát xung đều đặn mỗi 420ms trong suốt quá trình LLM đang đọc và suy luận
+    activeStreamInterval = setInterval(() => {
+      if (activeProcessingNodeId !== null) {
+        sendSinglePacket();
+      } else {
+        stopAgentIncomingStream();
+      }
+    }, 420);
+  }
+
+  function spawnAgentBroadcastWaves(fromId, decision) {
+    if (!enablePacketWaves || !network || fromId === undefined) return;
+    try {
+      const neighbors = network.getConnectedNodes(fromId);
+      if (!neighbors || neighbors.length === 0) return;
+      const color = decision === "FORWARD" ? "#10b981" : (decision === "COUNTER" ? "#f59e0b" : "#64748b");
+      
+      neighbors.slice(0, 5).forEach((nbr, idx) => {
+        setTimeout(() => {
+          activePackets.push({
+            from: fromId,
+            to: nbr,
+            progress: 0,
+            color: color,
+            speed: 0.024 + (idx % 2) * 0.005,
+            decision: decision
+          });
+          ensureAnimationLoop();
+        }, idx * 75);
+      });
+    } catch (e) {}
+  }
+
   function spawnPacketWaves(traces) {
     if (!enablePacketWaves || !network || !traces || traces.length === 0) return;
 
@@ -618,19 +692,20 @@ document.addEventListener("DOMContentLoaded", () => {
       else if (trace.decision === "FORWARD") color = "#10b981";
       else if (trace.decision === "IGNORE") color = "#64748b";
 
-      const packet = {
-        from: trace.sender_id,
-        to: trace.agent_id,
-        progress: 0,
-        color: color,
-        decision: trace.decision,
-        speed: 0.022 + (index % 3) * 0.004
-      };
-
-      setTimeout(() => {
-        activePackets.push(packet);
-        ensureAnimationLoop();
-      }, index * 80);
+      // Bắn 2 chấm tròn bé bé nối tiếp nhau trên mỗi cạnh lan truyền
+      for (let burst = 0; burst < 2; burst++) {
+        setTimeout(() => {
+          activePackets.push({
+            from: trace.sender_id,
+            to: trace.agent_id,
+            progress: 0,
+            color: color,
+            decision: trace.decision,
+            speed: 0.022 + (index % 3) * 0.004
+          });
+          ensureAnimationLoop();
+        }, index * 80 + burst * 150);
+      }
     });
   }
 
@@ -788,46 +863,48 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (e) {}
     });
 
-    // 2. Draw packets traveling along graph edges
+    // 2. Vẽ các chấm tròn bé bé (Photon Packets) di chuyển dọc theo đường truyền
     activePackets.forEach(pkt => {
       try {
         const p1 = network.getPosition(pkt.from);
         const p2 = network.getPosition(pkt.to);
         if (p1 && p2) {
           const t = Math.min(1, Math.max(0, pkt.progress));
-          // Cubic ease-in-out
+          // Cubic ease-in-out cho chuyển động gia tốc mượt mà tự nhiên
           const easeT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
           const px = p1.x + (p2.x - p1.x) * easeT;
           const py = p1.y + (p2.y - p1.y) * easeT;
 
           ctx.save();
           ctx.shadowColor = pkt.color;
-          ctx.shadowBlur = 14;
+          ctx.shadowBlur = 12;
 
-          // Glowing outer aura
+          // Vầng hào quang phát sáng nhẹ xung quanh chấm tròn
           ctx.beginPath();
-          ctx.arc(px, py, 6, 0, Math.PI * 2);
+          ctx.arc(px, py, 4.8, 0, Math.PI * 2);
           ctx.fillStyle = pkt.color;
-          ctx.globalAlpha = 0.5;
+          ctx.globalAlpha = 0.45;
           ctx.fill();
 
-          // Bright center photon
+          // Chấm tròn bé bé phát sáng màu trắng ngọc rực rỡ ở tâm
           ctx.beginPath();
-          ctx.arc(px, py, 3.2, 0, Math.PI * 2);
+          ctx.arc(px, py, 2.5, 0, Math.PI * 2);
           ctx.fillStyle = "#ffffff";
           ctx.globalAlpha = 1.0;
           ctx.fill();
 
-          // Trailing particles
+          // Vệt đuôi hạt ánh sáng lướt theo sau (Comet Trail)
           for (let i = 1; i <= 3; i++) {
-            const lagT = Math.max(0, easeT - i * 0.045);
-            const lx = p1.x + (p2.x - p1.x) * lagT;
-            const ly = p1.y + (p2.y - p1.y) * lagT;
-            ctx.beginPath();
-            ctx.arc(lx, ly, Math.max(1, 3 - i * 0.7), 0, Math.PI * 2);
-            ctx.fillStyle = pkt.color;
-            ctx.globalAlpha = Math.max(0, 0.4 - i * 0.1);
-            ctx.fill();
+            const lagT = Math.max(0, easeT - i * 0.038);
+            if (lagT > 0 && lagT < 1) {
+              const lx = p1.x + (p2.x - p1.x) * lagT;
+              const ly = p1.y + (p2.y - p1.y) * lagT;
+              ctx.beginPath();
+              ctx.arc(lx, ly, Math.max(0.8, 2.0 - i * 0.45), 0, Math.PI * 2);
+              ctx.fillStyle = pkt.color;
+              ctx.globalAlpha = Math.max(0, 0.4 - i * 0.1);
+              ctx.fill();
+            }
           }
 
           ctx.restore();
@@ -1056,7 +1133,9 @@ document.addEventListener("DOMContentLoaded", () => {
       btnStep.disabled = false;
       btnRun.disabled = false;
       stopHopTimer();
-      logToTerminal("warn", "🛑 Người dùng đã gửi lệnh DỪNG khẩn cấp quá trình mô phỏng.");
+      stopAgentIncomingStream();
+      activePackets = [];
+      logToTerminal("warn", "[DỪNG] Người dùng đã gửi lệnh DỪNG khẩn cấp quá trình mô phỏng.");
     } catch (e) {
       console.error("Lỗi khi dừng:", e);
     }
@@ -1234,6 +1313,40 @@ document.addEventListener("DOMContentLoaded", () => {
       recheckFeedback.style.color = "var(--accent-rose)";
       recheckFeedback.textContent = "✗ Chưa phát hiện Ollama. Hãy đảm bảo app Ollama đã bật!";
     }
+  });
+
+  // ==================== SCIENTIFIC EXPERIMENT USER GUIDE MODAL ====================
+  const guideModal = document.getElementById("guide-modal");
+  const btnOpenGuide = document.getElementById("btn-guide-modal");
+  const btnSidebarGuide = document.getElementById("btn-sidebar-guide");
+  const btnCloseGuideModal = document.getElementById("btn-close-guide-modal");
+
+  function openUserGuide() {
+    if (guideModal) guideModal.classList.add("open");
+  }
+  function closeUserGuide() {
+    if (guideModal) guideModal.classList.remove("open");
+  }
+
+  if (btnOpenGuide) btnOpenGuide.addEventListener("click", openUserGuide);
+  if (btnSidebarGuide) btnSidebarGuide.addEventListener("click", openUserGuide);
+  if (btnCloseGuideModal) btnCloseGuideModal.addEventListener("click", closeUserGuide);
+  if (guideModal) {
+    guideModal.addEventListener("click", (e) => {
+      if (e.target === guideModal) closeUserGuide();
+    });
+  }
+
+  // Guide Tabs Switching
+  document.querySelectorAll(".guide-tab-btn").forEach(tabBtn => {
+    tabBtn.addEventListener("click", () => {
+      document.querySelectorAll(".guide-tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".guide-tab-content").forEach(c => c.classList.remove("active"));
+      tabBtn.classList.add("active");
+      const targetTabId = tabBtn.getAttribute("data-tab");
+      const targetContent = document.getElementById(targetTabId);
+      if (targetContent) targetContent.classList.add("active");
+    });
   });
 
   // Initial Boot
