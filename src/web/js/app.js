@@ -1284,14 +1284,94 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ==================== EXPORT DATA ====================
+  // ==================== EXPORT DATA (CSV / JSON NCKH) ====================
+  function triggerClientDownload(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function convertTracesToCsv(traces, simId) {
+    const headers = [
+      "simulation_id", "hop", "sender_id", "agent_id", "persona",
+      "model_type", "model_name", "decision", "belief_score",
+      "drift_distance", "incoming_message", "outgoing_message", "reasoning"
+    ];
+    const escapeCsv = (str) => {
+      if (str === null || str === undefined) return '""';
+      const s = String(str).replace(/"/g, '""');
+      return `"${s}"`;
+    };
+    const rows = traces.map(t => [
+      escapeCsv(t.simulation_id || simId),
+      t.hop ?? 0,
+      t.sender_id ?? 0,
+      t.agent_id ?? 0,
+      escapeCsv(t.persona || ""),
+      escapeCsv(t.model_type || "LOCAL_OLLAMA"),
+      escapeCsv(t.model_name || "qwen2.5:3b"),
+      escapeCsv(t.decision || "FORWARD"),
+      t.belief_score ?? 0,
+      t.drift_distance ?? 0,
+      escapeCsv(t.incoming_message || ""),
+      escapeCsv(t.outgoing_message || ""),
+      escapeCsv(t.reasoning || "")
+    ].join(","));
+    return [headers.join(","), ...rows].join("\r\n");
+  }
+
   btnExport.addEventListener("click", async () => {
+    if (!currentSimulationId) {
+      alert("Chưa có dữ liệu mô phỏng!\n\nVui lòng nhấn nút 'Khởi tạo Mạng lưới' và thực hiện ít nhất 1 bước nhảy (Hop) để hệ thống thu thập dữ liệu lan truyền trước khi xuất file NCKH.");
+      logToTerminal("warn", "[XUẤT DỮ LIỆU] Chưa khởi tạo mô phỏng. Vui lòng nhấn 'Khởi tạo Mạng lưới' trước khi xuất dữ liệu.");
+      return;
+    }
+
+    const originalContent = btnExport.innerHTML;
+    btnExport.disabled = true;
+    btnExport.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
+        <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+        <path d="M12 2a10 10 0 0 1 10 10"></path>
+      </svg> Đang xuất dữ liệu...`;
+
     try {
       const res = await fetch("/api/simulation/export", { method: "POST" });
       const data = await res.json();
-      alert(`Xuất dữ liệu thành công!\nCác tệp đã được lưu vào thư mục 'experiments/':\n- ${data.files.metrics_csv}\n- ${data.files.traces_csv}\n- ${data.files.json_path}`);
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Máy chủ không thể xuất dữ liệu");
+      }
+
+      // 1. Tải về file CSV Traces trực tiếp trên trình duyệt
+      if (allTraces && allTraces.length > 0) {
+        const csvContent = convertTracesToCsv(allTraces, currentSimulationId);
+        triggerClientDownload("\uFEFF" + csvContent, `${currentSimulationId}_traces.csv`, "text/csv;charset=utf-8;");
+      }
+
+      // 2. Tải về file JSON tổng hợp
+      const jsonExportData = {
+        simulation_id: currentSimulationId,
+        exported_at: new Date().toISOString(),
+        total_traces: allTraces.length,
+        traces: allTraces
+      };
+      triggerClientDownload(JSON.stringify(jsonExportData, null, 2), `${currentSimulationId}_full.json`, "application/json");
+
+      logToTerminal("success", `[XUẤT DỮ LIỆU THÀNH CÔNG] Đã lưu vào 'experiments/' và tự động tải xuống 2 tệp CSV & JSON phục vụ viết bài báo NCKH.`);
+      alert(`✓ Xuất dữ liệu NCKH thành công!\n\n1. Đã lưu trữ trên máy chủ tại:\n- ${data.files.metrics_csv}\n- ${data.files.traces_csv}\n- ${data.files.json_path}\n\n2. Đã tự động kích hoạt tải xuống tệp CSV & JSON vào thư mục Downloads của trình duyệt!`);
     } catch (e) {
+      logToTerminal("error", `[XUẤT DỮ LIỆU THẤT BẠI] Lỗi: ${e.message}`);
       alert("Lỗi khi xuất dữ liệu: " + e.message);
+    } finally {
+      btnExport.disabled = false;
+      btnExport.innerHTML = originalContent;
     }
   });
 
