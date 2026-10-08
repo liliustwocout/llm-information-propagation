@@ -12,6 +12,7 @@ from src.core.engine import SimulationEngine
 from src.adapters.router import ModelRouter
 from src.storage.telemetry import TelemetryManager
 from src.api.websocket import ws_manager
+from src.api.analysis import build_analysis_payload, generate_report
 
 app = FastAPI(
     title="MAS-Diffusion-Lab",
@@ -27,6 +28,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static") or request.url.path == "/":
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Khởi tạo Singletons
 router = ModelRouter()
@@ -189,6 +199,36 @@ async def export_data():
         "files": files
     }
 
+# ==================== PHÂN TÍCH & ĐÁNH GIÁ ====================
+
+class AnalysisReportRequest(BaseModel):
+    provider: str = Field("gemini", description="gemini | ollama")
+    hop: Optional[int] = Field(None, description="Hop cụ thể cần phân tích; None = toàn bộ chu trình")
+    model: Optional[str] = Field(None, description="Ghi đè tên mô hình (tùy chọn)")
+
+@app.get("/api/analysis/data")
+async def get_analysis_data():
+    """
+    Trả về toàn bộ chỉ số theo hop, thống kê định lượng và vết truyền tin cho trang phân tích.
+    """
+    if not engine.graph:
+        raise HTTPException(status_code=400, detail="Mô phỏng chưa được khởi tạo.")
+    return build_analysis_payload(engine)
+
+@app.post("/api/analysis/report")
+async def create_analysis_report(req: AnalysisReportRequest):
+    """
+    Sinh báo cáo nhận định khoa học bằng Gemini (Cloud) hoặc Ollama (cục bộ).
+    """
+    if not engine.graph:
+        raise HTTPException(status_code=400, detail="Mô phỏng chưa được khởi tạo.")
+    try:
+        return await generate_report(engine, router, req.provider, req.hop, req.model)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Lỗi khi sinh báo cáo: {e}")
+
 # ==================== WEBSOCKET ====================
 
 @app.websocket("/ws")
@@ -212,3 +252,10 @@ if os.path.exists(web_dir):
     @app.get("/")
     async def serve_index():
         return FileResponse(os.path.join(web_dir, "index.html"))
+
+    @app.get("/analysis")
+    async def serve_analysis():
+        return FileResponse(
+            os.path.join(web_dir, "analysis.html"),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate, max-age=0"}
+        )

@@ -277,7 +277,10 @@ class SimulationEngine:
                 res["inference_duration"] = latency
                 agent_latencies.append(latency)
             except Exception as e:
-                print(f"Lỗi suy luận tác tử #{receiver_id}: {e}")
+                try:
+                    print(f"Lỗi suy luận tác tử #{receiver_id}: {e}")
+                except Exception:
+                    pass
                 continue
 
             node_id = res["agent_id"]

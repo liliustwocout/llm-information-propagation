@@ -1708,3 +1708,43 @@ label {
   color: var(--text-muted);
   line-height: 1.4;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* Analysis Button */
+.btn.btn-analysis {
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(0, 242, 254, 0.18));
+  border: 1px solid rgba(129, 140, 248, 0.45);
+  color: var(--text-main);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn.btn-analysis:not(:disabled):hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 18px rgba(0, 242, 254, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn.btn-analysis:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn.btn-analysis.ready {
+  animation: analysisPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes analysisPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(0, 242, 254, 0); }
+  50% { box-shadow: 0 0 16px rgba(0, 242, 254, 0.35); }
+}
+
