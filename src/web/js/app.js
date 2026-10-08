@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnRun = document.getElementById("btn-run");
   const btnStop = document.getElementById("btn-stop");
   const btnExport = document.getElementById("btn-export");
+  const btnAnalysis = document.getElementById("btn-analysis");
+  const btnAnalysisLabel = document.getElementById("btn-analysis-label");
 
   const hudHop = document.getElementById("hud-hop");
   const hudPenetration = document.getElementById("hud-penetration");
@@ -461,6 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnRun.disabled = false;
       btnStop.disabled = true;
       btnExport.disabled = false;
+      setAnalysisButtonState(0, false);
 
     } catch (e) {
       alert("Lỗi khi khởi tạo mạng: " + e.message);
@@ -1207,11 +1210,38 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    setAnalysisButtonState(summary.hop, !!result.finished);
+
     if (result.finished) {
       btnStep.disabled = true;
       btnRun.disabled = true;
       btnStop.disabled = true;
     }
+  }
+
+  // ==================== ANALYSIS PAGE BUTTON ====================
+  function setAnalysisButtonState(hop, finished) {
+    if (!btnAnalysis) return;
+    if (!hop || hop <= 0) {
+      btnAnalysis.disabled = true;
+      btnAnalysis.classList.remove("ready");
+      if (btnAnalysisLabel) btnAnalysisLabel.textContent = "Phân tích & Đánh giá";
+      return;
+    }
+    btnAnalysis.disabled = false;
+    btnAnalysis.classList.add("ready");
+    if (btnAnalysisLabel) {
+      btnAnalysisLabel.textContent = finished
+        ? `Phân tích & Đánh giá (Toàn bộ ${hop} Hop)`
+        : `Phân tích & Đánh giá (đến Hop ${hop})`;
+    }
+  }
+
+  if (btnAnalysis) {
+    btnAnalysis.addEventListener("click", () => {
+      if (btnAnalysis.disabled) return;
+      window.open("/analysis", "mas_analysis");
+    });
   }
 
   function renderTraceCard(trace) {
@@ -1432,4 +1462,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initial Boot
   checkSystemStatus();
   setupWebSocket();
+  fetch("/api/simulation/current")
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => {
+      if (d && d.hop_metrics && d.hop_metrics.length > 0) {
+        setAnalysisButtonState(d.current_hop, d.is_finished);
+      }
+    })
+    .catch(() => {});
 });

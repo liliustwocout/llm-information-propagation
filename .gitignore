@@ -71,3 +71,7 @@ desktop.ini
 # Ollama local binary models
 *.gguf
 *.bin
+
+# Experiment run artifacts (CSV, JSON telemetry generated during simulation runs)
+experiments/SIM_*
+experiments/SUMMARY_*
