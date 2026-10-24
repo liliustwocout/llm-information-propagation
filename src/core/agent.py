@@ -91,12 +91,12 @@ class LLMAgent:
 {system_directive}
 
 [SITUATION]
-You are Agent #{self.id} in a social network.
+You are Agent #{self.id} (Persona: {self.persona.value}) in a social network.
 You just received the following message from your neighbor Agent #{sender_id} (Hop {hop_count}):
 \"\"\"{incoming_message}\"\"\"
 
 [TASK]
-Analyze the received message according to your Persona.
+Analyze the received message according to your Persona ({self.persona.value}).
 You must return your response in strictly VALID JSON format with the following exact keys:
 {{
   "reasoning": "Brief 1-2 sentence thought process based on your persona",

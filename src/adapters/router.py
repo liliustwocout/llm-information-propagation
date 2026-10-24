@@ -115,7 +115,13 @@ class ModelRouter:
 
         except Exception as e:
             # Nếu có bất kỳ lỗi nào từ API thực tế, fallback an toàn sang Mock
-            print(f"[ModelRouter Warning] Lỗi gọi {model_type} ({str(e)}). Tự động fallback sang Mock LLM.")
+            try:
+                print(f"[ModelRouter Warning] Lỗi gọi {model_type} ({str(e)}). Tự động fallback sang Mock LLM.")
+            except Exception:
+                try:
+                    print(f"[ModelRouter Warning] Loi goi {model_type}. Tu dong fallback sang Mock LLM.")
+                except Exception:
+                    pass
             return await self.mock.generate(prompt=prompt, system=system, temperature=temperature, seed=seed)
 
     async def embed_text(self, text: str, preferred_type: str = "OLLAMA") -> List[float]:

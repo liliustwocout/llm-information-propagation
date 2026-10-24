@@ -35,12 +35,13 @@ def main():
     # Chạy thread mở trình duyệt
     threading.Thread(target=open_browser, daemon=True).start()
 
-    # Khởi chạy máy chủ Uvicorn
+    # Khởi chạy máy chủ Uvicorn (kèm auto-reload khi sửa code trong src)
     uvicorn.run(
         "src.api.routes:app",
         host="0.0.0.0",
         port=8000,
-        reload=False,
+        reload=True,
+        reload_dirs=["src"],
         log_level="info"
     )
 

@@ -37,8 +37,9 @@ class MockLLMAdapter(BaseModelAdapter):
 
         # Trích xuất nội dung tin nhắn và Persona từ prompt
         persona = "NEUTRAL_OBSERVER"
+        prompt_upper = (prompt + " " + (system or "")).upper()
         for p in ["FACT_CHECKER", "GULLIBLE_SPREADER", "DOGMATIC_PARTISAN", "OPINION_LEADER", "MALICIOUS_SPREADER"]:
-            if p in (system or "") or p in prompt:
+            if p in prompt_upper:
                 persona = p
                 break
 
@@ -51,11 +52,14 @@ class MockLLMAdapter(BaseModelAdapter):
 
         # Tạo phản hồi và biến dạng ngữ nghĩa theo Persona
         if persona == "FACT_CHECKER":
-            decision = "COUNTER" if ("tin giả" in msg_content.lower() or "đột quỵ" in msg_content.lower() or "thần dược" in msg_content.lower() or "bí mật" in msg_content.lower()) else "FORWARD"
+            dubious_keywords = ["tin giả", "đột quỵ", "thần dược", "bí mật", "chấn động", "khẩn cấp", "che giấu", "nguy hiểm", "biến chứng", "bị xóa", "phe chúng ta", "bà con ơi"]
+            is_dubious = any(k in msg_content.lower() for k in dubious_keywords)
+            decision = "COUNTER" if is_dubious else "FORWARD"
             if decision == "COUNTER":
-                reasoning = "Nội dung chứa nhiều từ ngữ giật gân, thiếu chứng cứ khoa học xác thực."
+                reasoning = "Nội dung chứa nhiều từ ngữ giật gân, thiếu chứng cứ khoa học xác thực hoặc có dấu hiệu phóng đại thông tin."
                 belief = -0.75
-                outgoing = f"CẢNH BÁO KIỂM CHỨNG: Nhận định sau đây chưa có cơ sở khoa học: '{msg_content[:60]}...'. Khuyến cáo mọi người đối chiếu nguồn tài liệu y tế chính thống."
+                clean_preview = msg_content.replace("Ghi nhận: ", "")[:60]
+                outgoing = f"CẢNH BÁO KIỂM CHỨNG: Nhận định '{clean_preview}...' chưa có cơ sở khoa học xác thực. Khuyến cáo mọi người đối chiếu nguồn tài liệu y tế chính thống."
             else:
                 reasoning = "Dữ liệu phù hợp với các báo cáo khoa học đã công bố."
                 belief = 0.8
@@ -105,7 +109,8 @@ class MockLLMAdapter(BaseModelAdapter):
                 decision = "FORWARD"
                 reasoning = "Chuyển tiếp nguyên văn một cách thận trọng."
                 belief = 0.1
-                outgoing = f"Ghi nhận: {msg_content}"
+                # Không lặp tiền tố nếu đã có
+                outgoing = msg_content if msg_content.startswith("Ghi nhận: ") else f"Ghi nhận: {msg_content}"
 
         result = {
             "reasoning": reasoning,
