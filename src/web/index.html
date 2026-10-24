@@ -107,6 +107,7 @@
             <option value="BA_SCALE_FREE" selected>Mạng Không tỷ lệ (Barabási–Albert BA)</option>
             <option value="WS_SMALL_WORLD">Mạng Thế giới nhỏ (Watts–Strogatz WS)</option>
             <option value="ER_RANDOM">Mạng Ngẫu nhiên Đối chứng (Erdős–Rényi ER)</option>
+            <option value="RING">Mạng Vòng Chu trình kín (Ring Topology)</option>
             <option value="SBM_COMMUNITY">Mạng Buồng vang (Stochastic Block SBM)</option>
           </select>
           <small class="form-hint" id="topo-desc">Phân bố bậc theo luật lũy thừa, xuất hiện các siêu nút (Hubs).</small>
@@ -126,7 +127,7 @@
         <div class="form-row">
           <div class="form-group half">
             <label for="input-nodes">Số lượng Tác tử (<i>N</i>):</label>
-            <input type="number" id="input-nodes" class="form-input" value="30" min="10" max="100" step="5">
+            <input type="number" id="input-nodes" class="form-input" value="30" min="5" max="100" step="5">
           </div>
           <div class="form-group half">
             <label for="input-hops">Số Hop tối đa (<i>T</i>):</label>
@@ -163,6 +164,24 @@
           <div class="form-group half">
             <label for="input-temp">Nhiệt độ (<i>&tau;</i>):</label>
             <input type="number" id="input-temp" class="form-input" value="0.7" min="0.1" max="1.2" step="0.1">
+          </div>
+        </div>
+
+        <!-- Giai đoạn 2: Cơ chế Giảm Ảo giác & Giao thức Đồng thuận -->
+        <div class="form-row" style="background: rgba(0, 242, 254, 0.04); border: 1px solid rgba(0, 242, 254, 0.18); border-radius: 6px; padding: 6px 8px; margin-bottom: 10px; display: flex; align-items: center;">
+          <div class="form-group half" style="margin-bottom: 0;">
+            <label for="toggle-self-reflection" style="display: flex; align-items: center; gap: 6px; cursor: pointer; text-transform: none; font-size: 0.72rem; margin-bottom: 0;">
+              <input type="checkbox" id="toggle-self-reflection" style="cursor: pointer; width: 15px; height: 15px; accent-color: var(--accent-cyan);">
+              <span><b>Tự phản tư</b><br><small style="color: var(--text-muted); font-size: 0.63rem;">Self-Reflection lọc ảo giác</small></span>
+            </label>
+          </div>
+          <div class="form-group half" style="margin-bottom: 0;">
+            <label for="select-consensus" style="font-size: 0.72rem; margin-bottom: 2px;">Giao thức Đồng thuận:</label>
+            <select id="select-consensus" class="form-select" style="font-size: 0.70rem; padding: 4px 6px;">
+              <option value="NONE" selected>Không (Độc lập)</option>
+              <option value="MAJORITY_VOTE">Bỏ phiếu Đa số</option>
+              <option value="PEER_REVIEW">Thẩm định Chéo</option>
+            </select>
           </div>
         </div>
 
@@ -232,26 +251,51 @@
 
     <!-- CENTER AREA: Interactive Network Graph Canvas -->
     <section class="center-canvas-panel glass-panel">
-      <!-- Top HUD Stats -->
+      <!-- Top HUD Stats (Fixed 3-tier layout: Title, Symbol/Sub, Value) -->
       <div class="hud-stats-bar">
-        <div class="stat-item">
-          <span class="stat-label">Bước nhảy (Hop)</span>
+        <div class="stat-item" title="Bước nhảy lan truyền hiện tại / Số bước nhảy tối đa">
+          <span class="stat-title">Bước nhảy</span>
+          <span class="stat-sub">(Hop)</span>
           <span class="stat-value" id="hud-hop">0 / 8</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Độ thẩm thấu <i>R</i>(<i>t</i>)</span>
+        <div class="stat-item" title="Độ thẩm thấu thông tin qua các tác tử R(t)">
+          <span class="stat-title">Độ thẩm thấu</span>
+          <span class="stat-sub"><i>R</i>(<i>t</i>)</span>
           <span class="stat-value highlight-cyan" id="hud-penetration">0.0%</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Biến dạng Ngữ nghĩa (<i>Dist</i><sub>sem</sub>)</span>
+        <div class="stat-item" title="Hệ số lây nhiễm cơ bản R_t: Số ca lây truyền trung bình từ mỗi tác tử tiếp nhận">
+          <span class="stat-title">Hệ số Lây nhiễm</span>
+          <span class="stat-sub"><i>R</i><sub><i>t</i></sub></span>
+          <span class="stat-value highlight-emerald" id="hud-reproduction">0.00</span>
+        </div>
+        <div class="stat-item" title="Độ tương đồng Cosine trung bình giữa thông điệp hiện tại và phát biểu gốc M0">
+          <span class="stat-title">Độ tương đồng</span>
+          <span class="stat-sub">(Cosine)</span>
+          <span class="stat-value highlight-cyan" id="hud-cosine">1.000</span>
+        </div>
+        <div class="stat-item" title="Khoảng cách biến dạng ngữ nghĩa trung bình so với phát biểu gốc M0">
+          <span class="stat-title">Biến dạng Ngữ nghĩa</span>
+          <span class="stat-sub">(<i>Dist</i><sub>sem</sub>)</span>
           <span class="stat-value highlight-amber" id="hud-drift">0.000</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Chỉ số Phân cực (<i>PI</i>)</span>
+        <div class="stat-item" title="Tỷ lệ tác tử sinh nội dung ảo giác/sai lệch theo kiểm định HaluEval">
+          <span class="stat-title">Tỷ lệ Ảo giác</span>
+          <span class="stat-sub">(HaluEval)</span>
+          <span class="stat-value highlight-pink" id="hud-hallucination">0.0%</span>
+        </div>
+        <div class="stat-item" title="Quan hệ suy luận tự nhiên chủ đạo trong hop hiện tại (Đồng thuận, Bác bỏ hoặc Trung lập)">
+          <span class="stat-title">Logic Suy luận</span>
+          <span class="stat-sub">(NLI)</span>
+          <span class="stat-value highlight-purple" id="hud-nli">--</span>
+        </div>
+        <div class="stat-item" title="Chỉ số phân cực niềm tin trong toàn bộ quần thể tác tử">
+          <span class="stat-title">Chỉ số Phân cực</span>
+          <span class="stat-sub">(<i>PI</i>)</span>
           <span class="stat-value highlight-pink" id="hud-polarization">0.000</span>
         </div>
-        <div class="stat-item">
-          <span class="stat-label">Hàng đợi Lan truyền</span>
+        <div class="stat-item" title="Số lượng thông điệp đang chờ được xử lý trong hàng đợi lan truyền">
+          <span class="stat-title">Hàng đợi Lan truyền</span>
+          <span class="stat-sub">(Queue)</span>
           <span class="stat-value" id="hud-queue">0 tin</span>
         </div>
       </div>
@@ -305,8 +349,18 @@
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               Chụp đồ thị
             </button>
+            <button class="btn-ctrl-icon" id="btn-toggle-telemetry-canvas" title="Bật / Tắt Cột Nhật ký LLMs (Mở rộng đồ thị)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+              Nhật ký LLMs
+            </button>
           </div>
         </div>
+
+        <!-- Floating Button to Open Telemetry when collapsed -->
+        <button class="btn-floating-open-telemetry" id="btn-open-telemetry" title="Mở lại Cột Nhật ký Tương tác LLMs">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Mở Nhật ký LLMs</span>
+        </button>
 
         <!-- Canvas Placeholder -->
         <div class="canvas-placeholder" id="canvas-placeholder">
@@ -378,6 +432,22 @@
                 <strong class="metric-txt" id="inspector-degree">--</strong>
               </div>
               <div class="inspector-metric">
+                <span class="metric-lbl">Tương đồng Cosine</span>
+                <strong class="metric-txt highlight-cyan" id="inspector-cosine">--</strong>
+              </div>
+              <div class="inspector-metric">
+                <span class="metric-lbl">Logic NLI</span>
+                <strong class="metric-txt" id="inspector-nli">--</strong>
+              </div>
+              <div class="inspector-metric">
+                <span class="metric-lbl">Ảo giác (HaluEval)</span>
+                <strong class="metric-txt highlight-pink" id="inspector-hallucination">--</strong>
+              </div>
+              <div class="inspector-metric">
+                <span class="metric-lbl">BERTScore F1</span>
+                <strong class="metric-txt highlight-amber" id="inspector-bert">--</strong>
+              </div>
+              <div class="inspector-metric">
                 <span class="metric-lbl">Láng giềng</span>
                 <strong class="metric-txt" id="inspector-neighbors">--</strong>
               </div>
@@ -404,10 +474,15 @@
     </section>
 
     <!-- RIGHT SIDEBAR: Live Hop Telemetry & Agent Messages -->
-    <aside class="sidebar-telemetry glass-panel">
+    <aside class="sidebar-telemetry glass-panel" id="sidebar-telemetry">
       <div class="panel-header">
-        <h2>Nhật ký Tương tác LLMs</h2>
-        <span class="live-pill"><span class="live-dot"></span> LIVE TRACE</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h2>Nhật ký Tương tác</h2>
+          <span class="live-pill"><span class="live-dot"></span> LIVE</span>
+        </div>
+        <button class="btn-toggle-sidebar" id="btn-close-telemetry" title="Thu gọn Cột Nhật ký để mở rộng tối đa Đồ thị">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
       </div>
 
       <div class="feed-filter">

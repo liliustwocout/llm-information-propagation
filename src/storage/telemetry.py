@@ -54,13 +54,27 @@ class TelemetryManager:
             trace_keys = [
                 "simulation_id", "hop", "sender_id", "agent_id", "persona",
                 "model_type", "model_name", "decision", "belief_score",
-                "drift_distance", "incoming_message", "outgoing_message", "reasoning"
+                "drift_distance", "cosine_similarity", "nli_label", "hallucination_rate",
+                "bert_f1", "incoming_message", "outgoing_message", "reasoning",
+                "reflection_enabled", "reflection_critique", "reflection_hallucination_detected",
+                "consensus_protocol", "consensus_status", "consensus_details"
             ]
             with open(traces_csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(f, fieldnames=trace_keys, extrasaction="ignore")
                 writer.writeheader()
                 for t in all_traces:
-                    writer.writerow(t)
+                    row = dict(t)
+                    # Flatten self_reflection dict
+                    ref = t.get("self_reflection") or {}
+                    row["reflection_enabled"] = ref.get("enabled", False)
+                    row["reflection_critique"] = ref.get("critique", "")
+                    row["reflection_hallucination_detected"] = ref.get("hallucination_detected", False)
+                    # Flatten consensus dict
+                    con = t.get("consensus") or {}
+                    row["consensus_protocol"] = con.get("protocol", "NONE")
+                    row["consensus_status"] = con.get("status", "NONE")
+                    row["consensus_details"] = con.get("details", "")
+                    writer.writerow(row)
 
         return {
             "json_path": json_path,

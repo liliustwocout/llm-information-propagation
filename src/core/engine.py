@@ -39,6 +39,10 @@ class SimulationEngine:
         self.hop_metrics_history: List[Dict[str, Any]] = []
         self.all_traces: List[Dict[str, Any]] = []
         self.progress_callback: Optional[Any] = None
+        
+        # Cơ chế Giảm Ảo giác (Giai đoạn 2 NCKH)
+        self.enable_self_reflection: bool = False
+        self.consensus_protocol: str = "NONE" # "NONE", "MAJORITY_VOTE", "PEER_REVIEW"
 
     def initialize_simulation(
         self,
@@ -53,10 +57,13 @@ class SimulationEngine:
         temperature: float = 0.7,
         max_hops: int = 10,
         seed: int = 42,
+        enable_self_reflection: bool = False,
+        consensus_protocol: str = "NONE", # "NONE", "MAJORITY_VOTE", "PEER_REVIEW"
         **kwargs
     ) -> Dict[str, Any]:
         """
         Khởi tạo toàn diện môi trường mô phỏng: sinh đồ thị, gán Persona và tiêm thông điệp gốc.
+        Hỗ trợ Cơ chế Tự phản tư (Self-Reflection) và Giao thức Đồng thuận (Consensus Protocol).
         """
         self.simulation_id = f"SIM_{int(time.time())}"
         self.current_hop = 0
@@ -68,6 +75,8 @@ class SimulationEngine:
         self.hop_metrics_history = []
         self.all_traces = []
         self.message_queue = []
+        self.enable_self_reflection = enable_self_reflection
+        self.consensus_protocol = consensus_protocol
 
         self.config = {
             "simulation_id": self.simulation_id,
@@ -81,6 +90,8 @@ class SimulationEngine:
             "temperature": temperature,
             "max_hops": max_hops,
             "seed": seed,
+            "enable_self_reflection": enable_self_reflection,
+            "consensus_protocol": consensus_protocol,
             **kwargs
         }
 
@@ -242,6 +253,9 @@ class SimulationEngine:
 
         new_transmissions: List[Dict[str, Any]] = []
         hop_drift_scores: List[float] = []
+        hop_cosine_scores: List[float] = []
+        hop_hallucination_scores: List[float] = []
+        hop_nli_labels: List[str] = []
         activated_nodes_this_hop: Set[int] = set()
         agent_latencies: List[float] = []
 
@@ -287,8 +301,14 @@ class SimulationEngine:
             decision = res["decision"]
             outgoing_msg = res["outgoing_message"]
             drift = res["drift_distance"]
+            cosine = res.get("cosine_similarity", round(1.0 - drift, 4))
+            nli_lbl = res.get("nli_label", "NEUTRAL")
+            halu = res.get("hallucination_rate", 0.0)
 
             hop_drift_scores.append(drift)
+            hop_cosine_scores.append(cosine)
+            hop_hallucination_scores.append(halu)
+            hop_nli_labels.append(nli_lbl)
             self.all_traces.append(res)
 
             if decision in ["FORWARD", "COUNTER"] and outgoing_msg:
@@ -327,6 +347,10 @@ class SimulationEngine:
                         "decision": decision,
                         "belief_score": res["belief_score"],
                         "drift_distance": drift,
+                        "cosine_similarity": cosine,
+                        "nli_label": nli_lbl,
+                        "hallucination_rate": halu,
+                        "bert_f1": res.get("bert_f1", 0.0),
                         "outgoing_message": outgoing_msg,
                         "reasoning": res.get("reasoning", ""),
                         "inference_duration": latency,
@@ -352,6 +376,9 @@ class SimulationEngine:
         polarization = MetricsCalculator.compute_polarization_index(all_beliefs)
 
         avg_drift = float(sum(hop_drift_scores) / len(hop_drift_scores)) if hop_drift_scores else 0.0
+        avg_cosine = float(sum(hop_cosine_scores) / len(hop_cosine_scores)) if hop_cosine_scores else 1.0
+        avg_hallucination = float(sum(hop_hallucination_scores) / len(hop_hallucination_scores)) if hop_hallucination_scores else 0.0
+        dominant_nli = max(set(hop_nli_labels), key=hop_nli_labels.count) if hop_nli_labels else "NEUTRAL"
         
         # Hệ số lây nhiễm hiệu dụng R_t
         active_previous = len(current_messages)
@@ -369,11 +396,16 @@ class SimulationEngine:
             "penetration_rate": penetration,
             "polarization_index": polarization,
             "average_semantic_drift": round(avg_drift, 4),
+            "average_cosine_similarity": round(avg_cosine, 4),
+            "average_hallucination_rate": round(avg_hallucination, 2),
+            "dominant_nli": dominant_nli,
             "reproduction_rate": reproduction_rate,
             "remaining_queue_size": len(self.message_queue),
             "informed_total": len(self.informed_nodes),
             "hop_duration_seconds": hop_duration,
-            "avg_agent_duration": avg_agent_latency
+            "avg_agent_duration": avg_agent_latency,
+            "reflection_interventions": sum(1 for t in self.all_traces if t.get("hop") == self.current_hop and t.get("self_reflection", {}).get("hallucination_detected")),
+            "consensus_interventions": sum(1 for t in self.all_traces if t.get("hop") == self.current_hop and t.get("consensus", {}).get("status") in ["COMMUNITY_REJECTED", "PEER_DISPUTED"])
         }
         self.hop_metrics_history.append(hop_summary)
 
@@ -400,6 +432,7 @@ class SimulationEngine:
     async def _process_single_message(self, agent: LLMAgent, item: Dict[str, Any]) -> Dict[str, Any]:
         """
         Xử lý suy luận của một tác tử đối với một thông điệp đến.
+        Tích hợp Cơ chế Tự phản tư (Self-Reflection) và Giao thức Đồng thuận (Consensus Protocol).
         """
         sender_id = item["sender_id"]
         incoming_msg = item["message"]
@@ -421,19 +454,119 @@ class SimulationEngine:
             seed=self.config.get("seed", 42) + agent.id + hop
         )
 
-        # 3. Phân tích kết quả có cấu trúc
+        # 3. Phân tích kết quả có cấu trúc ban đầu (Draft Decision)
         decision_data = agent.parse_llm_response(raw_output)
         decision = decision_data["decision"]
         new_belief = decision_data["updated_belief"]
         outgoing_msg = decision_data["outgoing_message"]
         reasoning = decision_data["reasoning"]
 
-        # 4. Cập nhật trạng thái nhận thức của Agent và Node đồ thị
+        # 4. Cơ chế Tự phản tư (Self-Reflection Mechanism - Giai đoạn 2)
+        reflection_data = {
+            "enabled": self.enable_self_reflection,
+            "critique": "",
+            "hallucination_detected": False,
+            "original_draft": outgoing_msg
+        }
+        if self.enable_self_reflection and decision in ["FORWARD", "COUNTER"] and outgoing_msg:
+            reflect_prompt = agent.build_reflection_prompt(
+                incoming_message=incoming_msg,
+                draft_outgoing=outgoing_msg,
+                draft_reasoning=reasoning
+            )
+            raw_reflect = await self.router.generate_for_agent(
+                model_type=agent.model_type,
+                model_name=agent.model_name,
+                prompt=reflect_prompt,
+                temperature=0.3,
+                seed=self.config.get("seed", 42) + agent.id + hop + 100
+            )
+            parsed_reflect = agent.parse_reflection_response(raw_reflect, original_draft=outgoing_msg)
+            reflection_data["critique"] = parsed_reflect["critique"]
+            reflection_data["hallucination_detected"] = parsed_reflect["hallucination_detected"]
+            outgoing_msg = parsed_reflect["revised_outgoing_message"]
+
+        # 5. Giao thức Đồng thuận (Consensus Protocol - Giai đoạn 2)
+        consensus_event = {
+            "protocol": self.consensus_protocol,
+            "status": "NONE",
+            "details": ""
+        }
+        if self.consensus_protocol != "NONE" and decision in ["FORWARD", "COUNTER"] and outgoing_msg:
+            if self.consensus_protocol == "MAJORITY_VOTE":
+                # Lấy các láng giềng đã tiếp nhận thông tin (Informed Neighbors)
+                neighbors = list(self.graph.neighbors(agent.id))
+                informed_neighbors = [
+                    self.agents[nbr] for nbr in neighbors 
+                    if nbr in self.agents and self.agents[nbr].state != AgentState.UNINFORMED
+                ]
+                if informed_neighbors:
+                    skeptic_count = sum(1 for nbr in informed_neighbors if nbr.belief_score < 0.0 or nbr.state == AgentState.INOCULATED_SKEPTIC)
+                    consensus_ratio = skeptic_count / len(informed_neighbors)
+                    if consensus_ratio >= 0.5:
+                        consensus_event["status"] = "COMMUNITY_REJECTED"
+                        consensus_event["details"] = f"Đa số láng giềng ({skeptic_count}/{len(informed_neighbors)}) phản biện/nghi ngờ. Thông điệp bị thu hồi sang IGNORE."
+                        decision = "IGNORE"
+                        new_belief = round(max(-1.0, min(new_belief, -0.3)), 3)
+                        outgoing_msg = ""
+                    else:
+                        consensus_event["status"] = "COMMUNITY_APPROVED"
+                        consensus_event["details"] = f"Đa số láng giềng ({len(informed_neighbors) - skeptic_count}/{len(informed_neighbors)}) đồng thuận chia sẻ."
+                else:
+                    consensus_event["status"] = "NO_INFORMED_NEIGHBORS"
+                    consensus_event["details"] = "Chưa có láng giềng nào tiếp nhận thông tin để bỏ phiếu."
+
+            elif self.consensus_protocol == "PEER_REVIEW":
+                neighbors = list(self.graph.neighbors(agent.id))
+                if neighbors:
+                    # Ưu tiên FACT_CHECKER > OPINION_LEADER > Bậc cao
+                    def reviewer_priority(nbr_id):
+                        nbr_agent = self.agents.get(nbr_id)
+                        p_score = 0
+                        if nbr_agent and nbr_agent.persona == AgentPersona.FACT_CHECKER:
+                            p_score += 100
+                        elif nbr_agent and nbr_agent.persona == AgentPersona.OPINION_LEADER:
+                            p_score += 50
+                        p_score += self.graph.degree(nbr_id)
+                        return p_score
+
+                    sorted_neighbors = sorted(neighbors, key=reviewer_priority, reverse=True)
+                    reviewer_id = sorted_neighbors[0]
+                    reviewer_agent = self.agents.get(reviewer_id)
+
+                    if reviewer_agent:
+                        review_prompt = reviewer_agent.build_peer_review_prompt(
+                            candidate_message=outgoing_msg,
+                            candidate_agent_id=agent.id
+                        )
+                        raw_review = await self.router.generate_for_agent(
+                            model_type=reviewer_agent.model_type,
+                            model_name=reviewer_agent.model_name,
+                            prompt=review_prompt,
+                            temperature=0.3,
+                            seed=self.config.get("seed", 42) + reviewer_id + hop + 200
+                        )
+                        review_res = reviewer_agent.parse_peer_review_response(raw_review)
+                        if review_res["verdict"] == "DISPUTE":
+                            consensus_event["status"] = "PEER_DISPUTED"
+                            consensus_event["details"] = f"Thẩm định viên #{reviewer_id} ({reviewer_agent.persona.value}) bác bỏ: '{review_res['review_comment']}'"
+                            if agent.persona == AgentPersona.FACT_CHECKER:
+                                decision = "COUNTER"
+                                outgoing_msg = f"[ĐÃ KIỂM CHỨNG LẠI] Cảnh báo thông tin sai lệch: {outgoing_msg}"
+                            else:
+                                decision = "IGNORE"
+                                outgoing_msg = ""
+                            new_belief = round(max(-1.0, new_belief - 0.5), 3)
+                        else:
+                            consensus_event["status"] = "PEER_APPROVED"
+                            consensus_event["details"] = f"Thẩm định viên #{reviewer_id} ({reviewer_agent.persona.value}) phê duyệt: '{review_res['review_comment']}'"
+
+        # 6. Cập nhật trạng thái nhận thức của Agent và Node đồ thị
         agent.update_state(decision, new_belief)
         self.graph.nodes[agent.id]["belief_score"] = new_belief
         self.graph.nodes[agent.id]["state"] = agent.state.value
 
-        # 5. Đo lường khoảng cách ngữ nghĩa (Semantic Drift) so với thông điệp nguồn
+        # 7. Đo lường khoảng cách ngữ nghĩa (Semantic Drift), NLI, Ảo giác và BERTScore
         if outgoing_msg:
             current_embed = await self.router.embed_text(outgoing_msg, preferred_type=agent.model_type)
             if len(self.origin_embedding) != len(current_embed):
@@ -442,8 +575,26 @@ class SimulationEngine:
                 drift_distance = MetricsCalculator.semantic_drift_distance(orig_hash, curr_hash)
             else:
                 drift_distance = MetricsCalculator.semantic_drift_distance(self.origin_embedding, current_embed)
+            
+            cosine_similarity = round(max(0.0, min(1.0, 1.0 - drift_distance)), 4)
+            nli_data = MetricsCalculator.compute_nli_entailment(self.origin_message, outgoing_msg)
+            nli_label = nli_data.get("label", "NEUTRAL")
+            nli_entailment = nli_data.get("entailment", 0.0)
+
+            halu_data = MetricsCalculator.compute_hallucination_rate(self.origin_message, outgoing_msg)
+            hallucination_rate = halu_data.get("hallucination_rate", 0.0)
+            hallucinated_tokens = halu_data.get("hallucinated_tokens", [])
+
+            bert_data = MetricsCalculator.compute_bert_score(self.origin_message, outgoing_msg)
+            bert_f1 = bert_data.get("f1", 0.0)
         else:
             drift_distance = 0.0
+            cosine_similarity = 1.0
+            nli_label = "NEUTRAL"
+            nli_entailment = 0.0
+            hallucination_rate = 0.0
+            hallucinated_tokens = []
+            bert_f1 = 0.0
 
         return {
             "simulation_id": self.simulation_id,
@@ -459,5 +610,13 @@ class SimulationEngine:
             "reasoning": reasoning,
             "belief_score": new_belief,
             "drift_distance": drift_distance,
+            "cosine_similarity": cosine_similarity,
+            "nli_label": nli_label,
+            "nli_entailment": nli_entailment,
+            "hallucination_rate": hallucination_rate,
+            "hallucinated_tokens": hallucinated_tokens,
+            "bert_f1": bert_f1,
+            "self_reflection": reflection_data,
+            "consensus": consensus_event,
             "timestamp": time.time()
         }

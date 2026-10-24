@@ -165,3 +165,131 @@ JSON OUTPUT:"""
             self.state = AgentState.INOCULATED_SKEPTIC
         else: # "IGNORE"
             self.state = AgentState.REFRACTORY
+
+    def build_reflection_prompt(
+        self,
+        incoming_message: str,
+        draft_outgoing: str,
+        draft_reasoning: str
+    ) -> str:
+        """
+        Tạo prompt Tự phản tư (Self-Reflection): Yêu cầu tác tử tự soi chiếu
+        xem dự thảo thông điệp có bịa đặt chi tiết, số liệu hay phóng đại quá mức không.
+        """
+        return f"""[SELF-REFLECTION & HALLUCINATION AUDIT]
+You are Agent #{self.id} (Persona: {self.persona.value}).
+You just formulated a draft message to broadcast to your network peers.
+
+[REFERENCE INCOMING MESSAGE]
+\"\"\"{incoming_message}\"\"\"
+
+[YOUR DRAFT MESSAGE]
+\"\"\"{draft_outgoing}\"\"\"
+
+[DRAFT REASONING]
+\"{draft_reasoning}\"
+
+[AUDIT OBJECTIVES]
+1. Faithfulness Check: Does your draft introduce false claims, hallucinatory entities, or fabricated statistics that are absent in the incoming reference?
+2. Distortion Check: Does the draft distort the factual core of the original information?
+3. Action:
+   - If distortions or hallucinations exist, rectify and produce a sanitized, truthful revision.
+   - If the draft is factually faithful and consistent with your persona, keep it essentially unchanged.
+
+Return strictly VALID JSON:
+{{
+  "critique": "A brief 1-2 sentence self-critique of your draft's factuality and risks",
+  "hallucination_detected": true or false,
+  "revised_outgoing_message": "The final revised and sanitized message to transmit (leave empty if you decide to withdraw it)"
+}}
+
+JSON OUTPUT:"""
+
+    def parse_reflection_response(self, raw_output: str, original_draft: str) -> Dict[str, Any]:
+        """
+        Trích xuất và chuẩn hóa phản hồi Tự phản tư (Self-Reflection) từ LLM.
+        """
+        fallback = {
+            "critique": "Self-reflection completed without explicit modification.",
+            "hallucination_detected": False,
+            "revised_outgoing_message": original_draft
+        }
+        if not raw_output:
+            return fallback
+
+        try:
+            json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group(0))
+                critique = str(parsed.get("critique", "Self-reflection completed.")).strip()
+                halu_detected = bool(parsed.get("hallucination_detected", False))
+                revised_msg = str(parsed.get("revised_outgoing_message", original_draft)).strip()
+                if not revised_msg and halu_detected:
+                    revised_msg = original_draft
+                return {
+                    "critique": critique,
+                    "hallucination_detected": halu_detected,
+                    "revised_outgoing_message": revised_msg
+                }
+        except Exception:
+            pass
+
+        return fallback
+
+    def build_peer_review_prompt(
+        self,
+        candidate_message: str,
+        candidate_agent_id: int
+    ) -> str:
+        """
+        Tạo prompt Thẩm định Chéo (Peer Review) cho Giao thức Đồng thuận.
+        """
+        return f"""[PEER REVIEW PROTOCOL]
+You are Agent #{self.id} (Persona: {self.persona.value}).
+Your neighbor Agent #{candidate_agent_id} requested a peer-review for a message before broadcasting:
+
+[CANDIDATE MESSAGE]
+\"\"\"{candidate_message}\"\"\"
+
+[TASK]
+Evaluate whether this message is factual, safe, and worthy of community dissemination according to your worldview and evidence standards.
+Return strictly VALID JSON:
+{{
+  "verdict": "APPROVE" (if truthful/acceptable) or "DISPUTE" (if misleading/harmful/false),
+  "confidence": A float between 0.0 and 1.0,
+  "review_comment": "Brief 1-sentence appraisal or correction"
+}}
+
+JSON OUTPUT:"""
+
+    def parse_peer_review_response(self, raw_output: str) -> Dict[str, Any]:
+        """
+        Trích xuất kết quả thẩm định chéo từ LLM.
+        """
+        fallback = {
+            "verdict": "APPROVE",
+            "confidence": 0.8,
+            "review_comment": "Message passed basic peer review."
+        }
+        if not raw_output:
+            return fallback
+
+        try:
+            json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group(0))
+                verdict = str(parsed.get("verdict", "APPROVE")).upper()
+                if verdict not in ["APPROVE", "DISPUTE"]:
+                    verdict = "APPROVE"
+                confidence = float(parsed.get("confidence", 0.8))
+                confidence = max(0.0, min(1.0, confidence))
+                comment = str(parsed.get("review_comment", "")).strip()
+                return {
+                    "verdict": verdict,
+                    "confidence": round(confidence, 2),
+                    "review_comment": comment
+                }
+        except Exception:
+            pass
+
+        return fallback

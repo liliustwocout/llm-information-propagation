@@ -13,7 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const hudHop = document.getElementById("hud-hop");
   const hudPenetration = document.getElementById("hud-penetration");
+  const hudReproduction = document.getElementById("hud-reproduction");
+  const hudCosine = document.getElementById("hud-cosine");
   const hudDrift = document.getElementById("hud-drift");
+  const hudHallucination = document.getElementById("hud-hallucination");
+  const hudNli = document.getElementById("hud-nli");
   const hudPolarization = document.getElementById("hud-polarization");
   const hudQueue = document.getElementById("hud-queue");
 
@@ -400,7 +404,9 @@ document.addEventListener("DOMContentLoaded", () => {
       cloud_ratio: parseFloat(document.getElementById("input-cloud-ratio").value) / 100.0,
       temperature: parseFloat(document.getElementById("input-temp").value),
       max_hops: parseInt(document.getElementById("input-hops").value, 10),
-      seed: 42
+      seed: 42,
+      enable_self_reflection: document.getElementById("toggle-self-reflection") ? document.getElementById("toggle-self-reflection").checked : false,
+      consensus_protocol: document.getElementById("select-consensus") ? document.getElementById("select-consensus").value : "NONE"
     };
 
     maxHopsConfig = payload.max_hops;
@@ -420,11 +426,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Reset HUD
       hudHop.textContent = `0 / ${maxHopsConfig}`;
-      lastHudValues = { penetration: 0, drift: 0, polarization: 0 };
-      hudPenetration.textContent = "0.0%";
-      hudDrift.textContent = "0.000";
-      hudPolarization.textContent = "0.000";
-      hudQueue.textContent = `${data.pending_messages} tin`;
+      lastHudValues = { penetration: 0, drift: 0, polarization: 0, cosine: 1.0, reproduction: 0, hallucination: 0 };
+      if (hudPenetration) hudPenetration.textContent = "0.0%";
+      if (hudReproduction) hudReproduction.textContent = "0.00";
+      if (hudCosine) hudCosine.textContent = "1.000";
+      if (hudDrift) hudDrift.textContent = "0.000";
+      if (hudHallucination) hudHallucination.textContent = "0.0%";
+      if (hudNli) { hudNli.textContent = "--"; hudNli.className = "stat-value highlight-purple"; }
+      if (hudPolarization) hudPolarization.textContent = "0.000";
+      if (hudQueue) hudQueue.textContent = `${data.pending_messages} tin`;
 
       // Reset Charts
       resetCharts();
@@ -947,15 +957,54 @@ document.addEventListener("DOMContentLoaded", () => {
       network.selectNodes([nodeId]);
     }
 
-    // Message History
+    // Message History & Deep Metrics
     const agentTraces = allTraces.filter(t => t.agent_id === nodeId);
     const lastTrace = agentTraces[agentTraces.length - 1];
+
+    const cosineEl = document.getElementById("inspector-cosine");
+    const nliEl = document.getElementById("inspector-nli");
+    const haluEl = document.getElementById("inspector-hallucination");
+    const bertEl = document.getElementById("inspector-bert");
+
+    if (lastTrace) {
+      if (cosineEl) cosineEl.textContent = (lastTrace.cosine_similarity !== undefined ? lastTrace.cosine_similarity : (1.0 - lastTrace.drift_distance)).toFixed(3);
+      if (nliEl) {
+        nliEl.textContent = lastTrace.nli_label || "NEUTRAL";
+        nliEl.style.color = lastTrace.nli_label === "CONTRADICTION" ? "var(--accent-rose)" : (lastTrace.nli_label === "ENTAILMENT" ? "var(--accent-emerald)" : "var(--accent-cyan)");
+      }
+      if (haluEl) haluEl.textContent = (lastTrace.hallucination_rate !== undefined ? lastTrace.hallucination_rate : 0.0) + "%";
+      if (bertEl) bertEl.textContent = (lastTrace.bert_f1 !== undefined ? lastTrace.bert_f1 : 0.0).toFixed(3);
+    } else {
+      if (cosineEl) cosineEl.textContent = "--";
+      if (nliEl) { nliEl.textContent = "--"; nliEl.style.color = ""; }
+      if (haluEl) haluEl.textContent = "--";
+      if (bertEl) bertEl.textContent = "--";
+    }
+
     const msgBox = document.getElementById("inspector-last-msg");
     if (lastTrace) {
+      let reflectionInfo = "";
+      if (lastTrace.self_reflection && lastTrace.self_reflection.enabled) {
+        reflectionInfo = `
+          <div style="margin-top:6px; padding:6px 8px; background:rgba(192,132,252,0.12); border-left:3px solid var(--accent-purple); border-radius:4px; font-size:10px; color:#e2e8f0;">
+            <strong style="color:var(--accent-purple);">Tự phản tư (Self-Reflection):</strong> ${lastTrace.self_reflection.critique || "Đã soi chiếu tính xác thực"}
+            ${lastTrace.self_reflection.hallucination_detected ? `<div style="color:#ff6b81; margin-top:2px; font-weight:600;">[!] Phát hiện ảo giác/thổi phồng và đã tự gọt giũa thông điệp.</div>` : ''}
+          </div>`;
+      }
+      let consensusInfo = "";
+      if (lastTrace.consensus && lastTrace.consensus.status && lastTrace.consensus.status !== "NONE") {
+        consensusInfo = `
+          <div style="margin-top:6px; padding:6px 8px; background:rgba(245,158,11,0.12); border-left:3px solid var(--accent-amber); border-radius:4px; font-size:10px; color:#e2e8f0;">
+            <strong style="color:var(--accent-amber);">Giao thức Đồng thuận (${lastTrace.consensus.protocol}):</strong> ${lastTrace.consensus.details || lastTrace.consensus.status}
+          </div>`;
+      }
+
       msgBox.innerHTML = `
         <div style="font-weight:600; color:var(--accent-cyan); margin-bottom:4px;">Hop ${lastTrace.hop} • Quyết định: ${lastTrace.decision}</div>
         <div style="color:#f8fafc; font-size:11px;">"${lastTrace.outgoing_message || 'Giữ im lặng (không chia sẻ)'}"</div>
         ${lastTrace.reasoning ? `<div style="margin-top:4px; font-size:10px; color:#94a3b8;"><em>Lập luận: ${lastTrace.reasoning}</em></div>` : ''}
+        ${reflectionInfo}
+        ${consensusInfo}
       `;
     } else {
       msgBox.textContent = "Chưa có phát ngôn nào được ghi nhận cho tác tử này.";
@@ -1043,6 +1092,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnCloseInspector) {
     btnCloseInspector.addEventListener("click", closeAgentInspector);
+  }
+
+  // ==================== SIDEBAR TELEMETRY TOGGLE ====================
+  const appLayout = document.querySelector(".app-layout");
+  const btnCloseTelemetry = document.getElementById("btn-close-telemetry");
+  const btnOpenTelemetry = document.getElementById("btn-open-telemetry");
+  const btnToggleTelemetryCanvas = document.getElementById("btn-toggle-telemetry-canvas");
+
+  function toggleTelemetrySidebar(forceState = null) {
+    if (!appLayout) return;
+    const isCurrentlyCollapsed = appLayout.classList.contains("telemetry-collapsed");
+    const willCollapse = forceState !== null ? forceState : !isCurrentlyCollapsed;
+
+    if (willCollapse) {
+      appLayout.classList.add("telemetry-collapsed");
+    } else {
+      appLayout.classList.remove("telemetry-collapsed");
+    }
+
+    // Sau khi grid transition hoàn tất, fit lại đồ thị mạng để luôn căng đẹp
+    setTimeout(() => {
+      if (network) {
+        network.fit({ animation: { duration: 300, easingFunction: "easeInOutQuad" } });
+      }
+    }, 320);
+  }
+
+  if (btnCloseTelemetry) {
+    btnCloseTelemetry.addEventListener("click", () => toggleTelemetrySidebar(true));
+  }
+  if (btnOpenTelemetry) {
+    btnOpenTelemetry.addEventListener("click", () => toggleTelemetrySidebar(false));
+  }
+  if (btnToggleTelemetryCanvas) {
+    btnToggleTelemetryCanvas.addEventListener("click", () => toggleTelemetrySidebar());
   }
 
   // ==================== LIVE PIPELINE TERMINAL DRAWER ====================
@@ -1152,13 +1236,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // 1. Cập nhật HUD mượt mà với Anime.js counter
     hudHop.textContent = `${summary.hop} / ${maxHopsConfig}`;
-    animateHudValue(hudPenetration, lastHudValues.penetration, summary.penetration_rate, "%", 1);
-    animateHudValue(hudDrift, lastHudValues.drift, summary.average_semantic_drift, "", 3);
-    animateHudValue(hudPolarization, lastHudValues.polarization, summary.polarization_index, "", 3);
+    animateHudValue(hudPenetration, lastHudValues.penetration || 0, summary.penetration_rate, "%", 1);
+    if (hudReproduction) animateHudValue(hudReproduction, lastHudValues.reproduction || 0, summary.reproduction_rate || 0, "", 2);
+    if (hudCosine) animateHudValue(hudCosine, lastHudValues.cosine || 1.0, summary.average_cosine_similarity !== undefined ? summary.average_cosine_similarity : (1.0 - summary.average_semantic_drift), "", 3);
+    animateHudValue(hudDrift, lastHudValues.drift || 0, summary.average_semantic_drift, "", 3);
+    if (hudHallucination) animateHudValue(hudHallucination, lastHudValues.hallucination || 0, summary.average_hallucination_rate || 0, "%", 1);
+    animateHudValue(hudPolarization, lastHudValues.polarization || 0, summary.polarization_index, "", 3);
     hudQueue.textContent = `${summary.remaining_queue_size} tin`;
 
+    if (hudNli && summary.dominant_nli) {
+      hudNli.textContent = summary.dominant_nli;
+      if (summary.dominant_nli === "CONTRADICTION") {
+        hudNli.className = "stat-value highlight-pink";
+      } else if (summary.dominant_nli === "ENTAILMENT") {
+        hudNli.className = "stat-value highlight-emerald";
+      } else {
+        hudNli.className = "stat-value highlight-cyan";
+      }
+    }
+
     lastHudValues.penetration = summary.penetration_rate;
+    lastHudValues.reproduction = summary.reproduction_rate || 0;
+    lastHudValues.cosine = summary.average_cosine_similarity !== undefined ? summary.average_cosine_similarity : (1.0 - summary.average_semantic_drift);
     lastHudValues.drift = summary.average_semantic_drift;
+    lastHudValues.hallucination = summary.average_hallucination_rate || 0;
     lastHudValues.polarization = summary.polarization_index;
 
     // 2. Cập nhật màu sắc node trên Vis.js
@@ -1257,10 +1358,28 @@ document.addEventListener("DOMContentLoaded", () => {
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `Thông điệp từ Tác tử #${trace.agent_id}`);
 
+    const nliLabel = trace.nli_label || "NEUTRAL";
+    const nliClass = nliLabel === "CONTRADICTION" ? "nli-contradiction" : (nliLabel === "ENTAILMENT" ? "nli-entailment" : "nli-neutral");
+    const nliText = nliLabel === "CONTRADICTION" ? "Bác bỏ (Contradiction)" : (nliLabel === "ENTAILMENT" ? "Đồng thuận (Entailment)" : "Trung lập (Neutral)");
+
+    const cosineVal = trace.cosine_similarity !== undefined ? trace.cosine_similarity : Math.max(0, 1.0 - trace.drift_distance);
+    const haluVal = trace.hallucination_rate !== undefined ? trace.hallucination_rate : 0.0;
+
+    const isReflected = trace.self_reflection && trace.self_reflection.enabled;
+    const haluDetected = trace.self_reflection && trace.self_reflection.hallucination_detected;
+    const consensusStatus = trace.consensus && trace.consensus.status && trace.consensus.status !== "NONE" ? trace.consensus.status : null;
+
     card.innerHTML = `
       <div class="trace-header">
         <span class="trace-agent">Agent #${trace.agent_id} (${trace.persona.replace("_", " ")})</span>
         <span class="trace-hop-badge">Hop ${trace.hop} • ${trace.decision}</span>
+      </div>
+      <div class="trace-badges-row">
+        <span class="badge-nli ${nliClass}">${nliText}</span>
+        ${haluVal > 0 ? `<span class="badge-halu" title="Tỷ lệ thực thể bịa đặt theo HaluEval">Ảo giác: ${haluVal.toFixed(1)}%</span>` : ''}
+        <span class="badge-cosine" title="Độ tương đồng Cosine vs M0">Cosine: ${cosineVal.toFixed(3)}</span>
+        ${isReflected ? `<span class="badge-halu" style="background:rgba(192,132,252,0.2); color:#c084fc; border:1px solid rgba(192,132,252,0.4);" title="${trace.self_reflection.critique || 'Tác tử đã tự phản tư'}">${haluDetected ? 'Đã lọc ảo giác' : 'Phản tư: OK'}</span>` : ''}
+        ${consensusStatus ? `<span class="badge-halu" style="background:rgba(245,158,11,0.2); color:#ffa502; border:1px solid rgba(245,158,11,0.4);" title="${trace.consensus.details || 'Kết quả giao thức đồng thuận'}">${consensusStatus === 'COMMUNITY_REJECTED' || consensusStatus === 'PEER_DISPUTED' ? 'Bị bác bỏ' : 'Được đồng thuận'}</span>` : ''}
       </div>
       <div class="trace-msg">${trace.outgoing_message ? `"${trace.outgoing_message}"` : '<em style="color:#64748b">Quyết định im lặng (không chia sẻ)</em>'}</div>
       <div class="trace-footer">

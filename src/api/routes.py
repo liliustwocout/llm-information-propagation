@@ -66,6 +66,8 @@ class InitSimulationRequest(BaseModel):
     temperature: float = Field(0.7, ge=0.0, le=1.5)
     max_hops: int = Field(10, ge=1, le=50)
     seed: int = Field(42)
+    enable_self_reflection: bool = Field(False, description="Bật cơ chế Tự phản tư (Self-Reflection) lọc ảo giác")
+    consensus_protocol: str = Field("NONE", description="NONE, MAJORITY_VOTE, PEER_REVIEW")
 
 # ==================== ENDPOINTS ====================
 
@@ -97,7 +99,9 @@ async def init_simulation(req: InitSimulationRequest):
         cloud_ratio=req.cloud_ratio,
         temperature=req.temperature,
         max_hops=req.max_hops,
-        seed=req.seed
+        seed=req.seed,
+        enable_self_reflection=req.enable_self_reflection,
+        consensus_protocol=req.consensus_protocol
     )
 
     # Phát thông báo qua WebSocket

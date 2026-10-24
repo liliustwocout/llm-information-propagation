@@ -43,6 +43,56 @@ class MockLLMAdapter(BaseModelAdapter):
                 persona = p
                 break
 
+        # 1. Xử lý phản hồi Tự phản tư (Self-Reflection Task)
+        if "[SELF-REFLECTION" in prompt:
+            draft_msg = ""
+            if "[YOUR DRAFT MESSAGE]" in prompt:
+                try:
+                    draft_msg = prompt.split('[YOUR DRAFT MESSAGE]')[1].split('"""')[1].strip()
+                except Exception:
+                    draft_msg = "Thông điệp dự thảo"
+
+            has_halu = any(w in draft_msg.lower() for w in ["khẩn cấp", "chấn động", "kẻo bị xóa", "che giấu", "biến chứng", "thần dược"])
+            if has_halu:
+                critique = "Tự phản tư: Phát hiện chi tiết phóng đại và từ ngữ giật gân chưa kiểm chứng. Cần tinh chỉnh giảm thiểu ảo giác."
+                sanitized = draft_msg.replace("Cực kỳ khẩn cấp bà con ơi! ", "").replace("Mọi người xem ngay kẻo bị xóa: ", "").replace("Tin chấn động vừa được tiết lộ: ", "")
+                sanitized = sanitized.replace(" và các chuyên gia đang âm thầm che giấu sự việc.", "").replace(" và các chuyên gia đang âm thầm che giấu sự việc", "")
+                revised = sanitized.strip()
+            else:
+                critique = "Tự phản tư: Thông điệp trung thực và bám sát nguồn tin gốc, không phát hiện ảo giác."
+                revised = draft_msg
+
+            return json.dumps({
+                "critique": critique,
+                "hallucination_detected": has_halu,
+                "revised_outgoing_message": revised
+            }, ensure_ascii=False)
+
+        # 2. Xử lý phản hồi Thẩm định chéo (Peer Review Task)
+        if "[PEER REVIEW" in prompt:
+            cand_msg = ""
+            if "[CANDIDATE MESSAGE]" in prompt:
+                try:
+                    cand_msg = prompt.split('[CANDIDATE MESSAGE]')[1].split('"""')[1].strip()
+                except Exception:
+                    cand_msg = "Thông điệp ứng viên"
+
+            is_suspicious = any(w in cand_msg.lower() for w in ["chấn động", "bị xóa", "che giấu", "thần dược", "đột quỵ"])
+            if is_suspicious and persona in ["FACT_CHECKER", "OPINION_LEADER"]:
+                verdict = "DISPUTE"
+                comment = "Phản biện: Thông điệp mang tính giật gân, thiếu căn cứ y khoa chính thống."
+                conf = 0.85
+            else:
+                verdict = "APPROVE"
+                comment = "Đồng thuận: Thông điệp hợp lệ để chia sẻ trong mạng lưới."
+                conf = 0.90
+
+            return json.dumps({
+                "verdict": verdict,
+                "confidence": conf,
+                "review_comment": comment
+            }, ensure_ascii=False)
+
         # Trích xuất đoạn tin nhắn
         msg_content = "Thông tin ban đầu"
         if '"""' in prompt:

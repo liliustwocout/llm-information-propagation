@@ -96,13 +96,14 @@ def test_agent_parsing():
 
 def test_simulation_engine_run():
     """Kiểm tra chạy mô phỏng tích hợp 2 bước."""
-    router = ModelRouter()
+    router = ModelRouter(ollama_default_model="qwen2.5:3b")
     engine = SimulationEngine(router=router)
 
     init_res = engine.initialize_simulation(
         topology=TopologyType.BA_SCALE_FREE,
         num_nodes=15,
         seed_message="Thử nghiệm thông điệp khoa học kiểm chuẩn",
+        local_model="qwen2.5:3b",
         max_hops=3,
         seed=42
     )
@@ -136,6 +137,77 @@ def test_simulation_engine_run():
     shutil.rmtree("experiments_test", ignore_errors=True)
     loop.close()
 
+def test_self_reflection():
+    """Kiểm tra cơ chế Tự phản tư (Self-Reflection) lọc ảo giác."""
+    agent = LLMAgent(agent_id=2, persona=AgentPersona.GULLIBLE_SPREADER)
+    prompt = agent.build_reflection_prompt(
+        incoming_message="Tổ chức Y tế khuyến cáo uống đủ nước.",
+        draft_outgoing="Cực kỳ khẩn cấp bà con ơi! Uống nước sẽ chữa bách bệnh và chính quyền đang che giấu!",
+        draft_reasoning="Cảm thấy tin này quá hot cần chia sẻ ngay"
+    )
+    assert "[SELF-REFLECTION & HALLUCINATION AUDIT]" in prompt
+    assert "Cực kỳ khẩn cấp bà con ơi!" in prompt
+
+    # Giả lập phản hồi phản tư có lọc ảo giác
+    mock_reflect_json = '{"critique": "Phát hiện chi tiết thổi phồng", "hallucination_detected": true, "revised_outgoing_message": "Khuyến nghị uống đủ nước mỗi ngày để hỗ trợ sức khỏe."}'
+    parsed = agent.parse_reflection_response(mock_reflect_json, "Bản nháp gốc")
+    assert parsed["hallucination_detected"] is True
+    assert "Khuyến nghị uống đủ nước" in parsed["revised_outgoing_message"]
+
+    # Chạy mô phỏng có bật self-reflection
+    router = ModelRouter()
+    engine = SimulationEngine(router=router)
+    engine.initialize_simulation(
+        topology=TopologyType.RING,
+        num_nodes=5,
+        seed_message="Khoa học khuyến nghị vận động thể thao đều đặn.",
+        enable_self_reflection=True,
+        max_hops=2,
+        seed=42
+    )
+    assert engine.enable_self_reflection is True
+    loop = asyncio.new_event_loop()
+    step_res = loop.run_until_complete(engine.step())
+    assert "hop_summary" in step_res
+    assert "reflection_interventions" in step_res["hop_summary"]
+    loop.close()
+
+def test_consensus_protocols():
+    """Kiểm tra các giao thức Đồng thuận (Majority Vote & Peer Review)."""
+    # 1. Majority Vote Protocol
+    router = ModelRouter()
+    engine_mv = SimulationEngine(router=router)
+    engine_mv.initialize_simulation(
+        topology=TopologyType.WS_SMALL_WORLD,
+        num_nodes=8,
+        seed_message="Kiểm tra giao thức đồng thuận bỏ phiếu đa số",
+        consensus_protocol="MAJORITY_VOTE",
+        max_hops=2,
+        seed=42
+    )
+    assert engine_mv.consensus_protocol == "MAJORITY_VOTE"
+    loop = asyncio.new_event_loop()
+    res_mv = loop.run_until_complete(engine_mv.step())
+    assert "hop_summary" in res_mv
+    assert "consensus_interventions" in res_mv["hop_summary"]
+
+    # 2. Peer Review Protocol
+    engine_pr = SimulationEngine(router=router)
+    engine_pr.initialize_simulation(
+        topology=TopologyType.BA_SCALE_FREE,
+        num_nodes=8,
+        seed_message="Kiểm tra giao thức đồng thuận thẩm định chéo",
+        consensus_protocol="PEER_REVIEW",
+        fact_checker_ratio=0.25,
+        max_hops=2,
+        seed=42
+    )
+    assert engine_pr.consensus_protocol == "PEER_REVIEW"
+    res_pr = loop.run_until_complete(engine_pr.step())
+    assert "hop_summary" in res_pr
+    assert "consensus_interventions" in res_pr["hop_summary"]
+    loop.close()
+
 if __name__ == "__main__":
     test_network_generation()
     print("[PASS] test_network_generation")
@@ -145,4 +217,8 @@ if __name__ == "__main__":
     print("[PASS] test_agent_parsing")
     test_simulation_engine_run()
     print("[PASS] test_simulation_engine_run")
+    test_self_reflection()
+    print("[PASS] test_self_reflection")
+    test_consensus_protocols()
+    print("[PASS] test_consensus_protocols")
     print("\nALL UNIT TESTS PASSED SUCCESSFULLY 100%!")
